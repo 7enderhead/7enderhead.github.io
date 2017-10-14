@@ -2,7 +2,7 @@
 
 (require racket/gui/base)
 (require racket/format) ; for ~a
-(require "db.rkt")
+(require "db_test.rkt")
 
 ; Make a frame by instantiating the frame% class
 (define frame (new frame% [label "GUI Test"]
