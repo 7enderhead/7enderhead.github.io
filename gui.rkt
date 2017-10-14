@@ -1,6 +1,7 @@
 #lang racket
 
 (require racket/gui/base)
+(require racket/format) ; for ~a
 (require "db.rkt")
 
 ; Make a frame by instantiating the frame% class
