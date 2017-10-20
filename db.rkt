@@ -4,7 +4,7 @@
 (define con
   (virtual-connection
    (connection-pool
-    (lambda () (mysql-connect #:server "192.168.0.24"
+    (lambda () (mysql-connect #:server "127.0.0.1"
                               #:user "root"
                               #:password "MySql123"
                               #:database "test1")))))
