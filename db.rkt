@@ -1,15 +1,21 @@
 #lang racket
+
 (require db)
+(require setup/getinfo)
+(require "structs.rkt")
 
-(define con
-  (virtual-connection
-   (connection-pool
-    (lambda () (mysql-connect #:server "127.0.0.1"
-                              #:user "root"
-                              #:password "MySql123"
-                              #:database "test1")))))
 
-(define (all-persons)
-  (query-rows con "select * from person"))
+(define connection
+  (let ([info (get-info/full ".")])
+    (virtual-connection
+     (connection-pool
+      (lambda () (mysql-connect #:server (info 'db-server)
+                                #:user (info 'db-user)
+                                #:password (info 'db-password)
+                                #:database (info 'db-name)))))))
 
-(provide all-persons)
+(define (stops)
+  (for/list ([row (query-rows connection "select * from stop")])
+    (apply stop (vector->list row))))
+
+(provide (all-defined-out))
