@@ -17,9 +17,11 @@
                    [label "Stop:"]
                    [parent parent]
                    [choices '()]
-                   [columns '("Name")]
+                   [columns '("Name" "Longitude" "Latitude")]
                    [style '(single column-headers)])])
     (send list set-column-width 0 200 200 400)
+    (send list set-column-width 1 100 100 100)
+    (send list set-column-width 2 100 100 100)
     list))
 
 (define (create-filter-field parent list)
@@ -30,15 +32,20 @@
                    (populate list (send field get-value)))]))
 
 (define (set-data stop-list stops)
-  (send/apply stop-list set (let-values ([(names)
-                                          (for/lists (names)
+  (send/apply stop-list set (let-values ([(names lons lats)
+                                          (for/lists (names lons lats)
                                             ([stop stops])
-                                            (values (~a (stop-name stop))))])
-                              (list names)))
+                                            (values (~a (stop-name stop))
+                                                    (~a (exact->padded-string (stop-lon stop)))
+                                                    (~a (exact->padded-string (stop-lon stop)))))])
+                              (list names lons lats)))
   ; associate id as data
   (for ([index (in-naturals 0)]
         [stop stops])
     (send stop-list set-data index (stop-id stop))))
+
+(define (exact->padded-string e)
+  (~a (exact->inexact e) #:width 10 #:right-pad-string "0"))
 
 (define (filter-stops stops filter-expr)
   (filter
