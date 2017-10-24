@@ -1,3 +1,4 @@
 *.rkt~
 *.bak
+*.2
 compiled/

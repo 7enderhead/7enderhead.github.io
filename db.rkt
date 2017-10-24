@@ -4,7 +4,6 @@
 (require setup/getinfo)
 (require "structs.rkt")
 
-
 (define connection
   (let ([info (get-info/full ".")])
     (virtual-connection
