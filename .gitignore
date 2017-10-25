@@ -1,4 +1,4 @@
 *.rkt~
 *.bak
-*.2
+*.[[:digit:]]*
 compiled/
