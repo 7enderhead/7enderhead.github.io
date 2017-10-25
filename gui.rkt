@@ -52,7 +52,7 @@
 
 (define column-mappings #(("Name" stop-name)
                           ("Longitude" stop-lon)
-                          ("Latitude" stop-lan)))
+                          ("Latitude" stop-lat)))
 
 (define column-names
   (map (match-lambda [(list name accessor) name])
@@ -63,7 +63,7 @@
            [filter-lon? (lambda () (send lon-checkbox get-value))]
            [filter-lat? (lambda () (send lat-checkbox get-value))]
 
-           [populate (lambda ()
+           [populate (lambda ([sorting 0])
                        (populate-list list
                                       #:filter-expr (if (send filter-checkbox get-value)
                                                         (send filter-textfield get-value)
@@ -79,7 +79,8 @@
                                                     (min-lat (stops)))
                                       #:max-lat (if (filter-lat?)
                                                     (slider->lat (send max-lat-slider get-value))
-                                                    (max-lat (stops)))))]
+                                                    (max-lat (stops)))
+                                      #:sorting sorting))]
 
            [panel (new vertical-panel%
                        [parent parent])]
@@ -91,7 +92,7 @@
                       [columns column-names]
                       [style '(single column-headers)]
                       [callback (lambda (list event) (when (equal? 'list-box-column (send event get-event-type))
-                                                       (displayln (send event get-column))))])]
+                                                       (populate (send event get-column))))])]
 
            [filter-panel (new horizontal-panel%
                               [parent panel]
@@ -223,8 +224,14 @@
    stops))
 
 (define (sort-stops stops sorting-index)
-  (let ([accessor (eval (second (vector-ref column-mappings sorting-index)) (module->namespace "structs.rkt"))])
-    (sort stops (lambda (x y) (string<? (~a (accessor x)) (~a (accessor y)))))))
+  (let ([accessor (eval (second (vector-ref column-mappings sorting-index))
+                        (module->namespace "structs.rkt"))])
+    (sort stops (lambda (stop1 stop2)
+                  (let ([value1 (accessor stop1)]
+                        [value2 (accessor stop2)])
+                    (if (string? value1)
+                        (string<? value1 value2)
+                        (< value1 value2)))))))
 
 (define (get-selected-id stop-list)
   (if-let [selected-index (send stop-list get-selection)]
