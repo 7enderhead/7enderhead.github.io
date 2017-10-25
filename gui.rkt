@@ -50,10 +50,14 @@
   (let ([factor (/ (- out-max out-min) (- in-max in-min))])
     (+ (* (- x in-min) factor) out-min)))
 
-(define main-frame (new frame% [label "Stops"]
-                   [width 400]
-                   [height 800]))
- 
+(define column-mappings #(("Name" stop-name)
+                          ("Longitude" stop-lon)
+                          ("Latitude" stop-lan)))
+
+(define column-names
+  (map (match-lambda [(list name accessor) name])
+       (vector->list column-mappings)))
+
 (define (create-stop-list parent)
   (letrec ([filter-name? (lambda () (send filter-checkbox get-value))]
            [filter-lon? (lambda () (send lon-checkbox get-value))]
@@ -84,8 +88,10 @@
                       [label ""]
                       [parent panel]
                       [choices '()]
-                      [columns '("Name" "Longitude" "Latitude")]
-                      [style '(single column-headers)])]
+                      [columns column-names]
+                      [style '(single column-headers)]
+                      [callback (lambda (list event) (when (equal? 'list-box-column (send event get-event-type))
+                                                       (displayln (send event get-column))))])]
 
            [filter-panel (new horizontal-panel%
                               [parent panel]
@@ -122,7 +128,7 @@
                                 [callback (lambda (slider event)
                                             (send slider set-label
                                                   (make-min-lon-label (send slider get-value)))
-                                            (when (filter-lon?)(populate)))])]
+                                            (when (filter-lon?) (populate)))])]
 
            [max-lon-slider (new slider%
                                 [label (make-max-lon-label slider-max)]
@@ -133,7 +139,7 @@
                                 [style '(plain horizontal)]
                                 [callback (lambda (slider event)
                                             (send slider set-label (make-max-lon-label (send slider get-value)))
-                                            (when (filter-lon?)(populate)))])]
+                                            (when (filter-lon?) (populate)))])]
 
             [lat-panel (new vertical-panel%
                            [parent panel]
@@ -153,7 +159,7 @@
                                 [style '(plain horizontal)]
                                 [callback (lambda (slider event)
                                             (send slider set-label (make-min-lat-label (send slider get-value)))
-                                            (when (filter-lat?)(populate)))])]
+                                            (when (filter-lat?) (populate)))])]
 
            [max-lat-slider (new slider%
                                 [label (make-max-lat-label slider-max)]
@@ -164,11 +170,12 @@
                                 [style '(plain horizontal)]
                                 [callback (lambda (slider event)
                                             (send slider set-label (make-max-lat-label (send slider get-value)))
-                                            (when (filter-lat?)(populate)))])]
+                                            (when (filter-lat?) (populate)))])]
            )
     (send list set-column-width 0 200 200 400)
     (send list set-column-width 1 100 100 100)
     (send list set-column-width 2 100 100 100)
+    (populate-list list)
     list))
 
 (define (set-data stop-list stops)
@@ -188,16 +195,18 @@
   (~a (exact->inexact e) #:width 10 #:right-pad-string "0"))
 
 (define (populate-list stop-list
-                  #:filter-expr [filter-expr ""]
-                  #:min-lon [min-lon (min-lon (stops))]
-                  #:max-lon [max-lon (max-lon (stops))]
-                  #:min-lat [min-lat (min-lat (stops))]
-                  #:max-lat [max-lat (max-lat (stops))])
+                       #:filter-expr [filter-expr ""]
+                       #:min-lon [min-lon (min-lon (stops))]
+                       #:max-lon [max-lon (max-lon (stops))]
+                       #:min-lat [min-lat (min-lat (stops))]
+                       #:max-lat [max-lat (max-lat (stops))]
+                       #:sorting [sorting 0])
   (let ([selected-id (get-selected-id stop-list)])
-    (set-data stop-list (filter-stops (stops)
-                                      filter-expr
-                                      min-lon max-lon
-                                      min-lat max-lat))
+    (set-data stop-list (~> (filter-stops (stops)
+                                          filter-expr
+                                          min-lon max-lon
+                                          min-lat max-lat)
+                            (sort-stops sorting)))
     (set-selection stop-list selected-id)))
 
 (define (filter-stops stops filter-expr min-lon max-lon min-lat max-lat)
@@ -213,6 +222,10 @@
           (<= (stop-lat stop) max-lat)))
    stops))
 
+(define (sort-stops stops sorting-index)
+  (let ([accessor (eval (second (vector-ref column-mappings sorting-index)) (module->namespace "structs.rkt"))])
+    (sort stops (lambda (x y) (string<? (~a (accessor x)) (~a (accessor y)))))))
+
 (define (get-selected-id stop-list)
   (if-let [selected-index (send stop-list get-selection)]
           (send stop-list get-data selected-index)
@@ -224,11 +237,16 @@
 
 (define (index-for-id stop-list id)
   (for/or ([index (in-range 0 (send stop-list get-number))])
-    (let ([current-id (send stops1 get-data index)])
+    (let ([current-id (send stop-list get-data index)])
       (if (equal? current-id id) index #f))))
 
-; initialisation
+;;; initialisation
+
+(define main-frame (new frame% [label "Stops"]
+                   [width 400]
+                   [height 800]))
+ 
 (define stops1 (create-stop-list main-frame))
-(populate-list stops1)
+#;(define stops2 (create-stop-list main-frame))
 
 (send main-frame show #t)
