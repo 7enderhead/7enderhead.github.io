@@ -50,63 +50,62 @@
   (let ([factor (/ (- out-max out-min) (- in-max in-min))])
     (+ (* (- x in-min) factor) out-min)))
 
-(define (lon->slider lon)
-  (map-range lon
-             (min-lon (stops))
-             (max-lon (stops))
-             slider-min slider-max))
-
-
-
-
 (define main-frame (new frame% [label "Stops"]
                    [width 400]
                    [height 800]))
  
 (define (create-stop-list parent)
-  (letrec ([populate (lambda () (populate-list list
-                                               #:filter-expr (if (send filter-checkbox get-value)
-                                                                 (send filter-textfield get-value)
-                                                                 "")
-                                               #:min-lon (if (send lon-checkbox get-value)
-                                                             (slider->lon (send min-lon-slider get-value))
-                                                             (min-lon (stops)))
-                                               #:max-lon (if (send lon-checkbox get-value)
-                                                             (slider->lon (send max-lon-slider get-value))
-                                                             (max-lon (stops)))
-                                               #:min-lat (if (send lat-checkbox get-value)
-                                                             (slider->lat (send min-lat-slider get-value))
-                                                             (min-lat (stops)))
-                                               #:max-lat (if (send lat-checkbox get-value)
-                                                             (slider->lat (send max-lat-slider get-value))
-                                                             (max-lat (stops)))))]
+  (letrec ([filter-name? (lambda () (send filter-checkbox get-value))]
+           [filter-lon? (lambda () (send lon-checkbox get-value))]
+           [filter-lat? (lambda () (send lat-checkbox get-value))]
+
+           [populate (lambda ()
+                       (populate-list list
+                                      #:filter-expr (if (send filter-checkbox get-value)
+                                                        (send filter-textfield get-value)
+                                                        "")
+                                      #:min-lon (if (filter-lon?)
+                                                    (slider->lon (send min-lon-slider get-value))
+                                                    (min-lon (stops)))
+                                      #:max-lon (if (filter-lon?)
+                                                    (slider->lon (send max-lon-slider get-value))
+                                                    (max-lon (stops)))
+                                      #:min-lat (if (filter-lat?)
+                                                    (slider->lat (send min-lat-slider get-value))
+                                                    (min-lat (stops)))
+                                      #:max-lat (if (filter-lat?)
+                                                    (slider->lat (send max-lat-slider get-value))
+                                                    (max-lat (stops)))))]
 
            [panel (new vertical-panel%
                        [parent parent])]
            
            [list (new list-box%
-                      [label "Stop:"]
+                      [label ""]
                       [parent panel]
                       [choices '()]
                       [columns '("Name" "Longitude" "Latitude")]
                       [style '(single column-headers)])]
 
            [filter-panel (new horizontal-panel%
-                              [parent panel])]
+                              [parent panel]
+                              [stretchable-height #f])]
 
            [filter-checkbox (new check-box%
-                                 [label ""]
+                                 [label "Name filter"]
                                  [parent filter-panel]
                                  [value #t]
                                  [callback (lambda (checkbox event) (populate))])]
 
            [filter-textfield (new text-field%
-                                  [label "Name filter:"]
+                                  [label ""]
                                   [parent filter-panel]
-                                  [callback (lambda (filter-textfield event) (populate))])]
+                                  [callback (lambda (filter-textfield event)
+                                              (when (filter-name?) (populate)))])]
 
            [lon-panel (new vertical-panel%
-                           [parent panel])]
+                           [parent panel]
+                           [stretchable-height #f])]
 
            [lon-checkbox (new check-box%
                               [label "Longitude filter"]
@@ -121,8 +120,9 @@
                                 [init-value slider-min]
                                 [style '(plain horizontal)]
                                 [callback (lambda (slider event)
-                                            (send slider set-label (make-min-lon-label (send slider get-value)))
-                                            (populate))])]
+                                            (send slider set-label
+                                                  (make-min-lon-label (send slider get-value)))
+                                            (when (filter-lon?)(populate)))])]
 
            [max-lon-slider (new slider%
                                 [label (make-max-lon-label slider-max)]
@@ -133,10 +133,11 @@
                                 [style '(plain horizontal)]
                                 [callback (lambda (slider event)
                                             (send slider set-label (make-max-lon-label (send slider get-value)))
-                                            (populate))])]
+                                            (when (filter-lon?)(populate)))])]
 
             [lat-panel (new vertical-panel%
-                           [parent panel])]
+                           [parent panel]
+                           [stretchable-height #f])]
 
            [lat-checkbox (new check-box%
                               [label "Latitude filter"]
@@ -152,7 +153,7 @@
                                 [style '(plain horizontal)]
                                 [callback (lambda (slider event)
                                             (send slider set-label (make-min-lat-label (send slider get-value)))
-                                            (populate))])]
+                                            (when (filter-lat?)(populate)))])]
 
            [max-lat-slider (new slider%
                                 [label (make-max-lat-label slider-max)]
@@ -163,7 +164,7 @@
                                 [style '(plain horizontal)]
                                 [callback (lambda (slider event)
                                             (send slider set-label (make-max-lat-label (send slider get-value)))
-                                            (populate))])]
+                                            (when (filter-lat?)(populate)))])]
            )
     (send list set-column-width 0 200 200 400)
     (send list set-column-width 1 100 100 100)
