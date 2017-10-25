@@ -1,27 +1,50 @@
 #lang racket
 
 (require racket/gui/base)
-(require racket/format) ; for ~a
+(require racket/format)
 (require threading)
 (require anaphoric)
 (require "structs.rkt")
 (require (prefix-in db: "db.rkt"))
 
+;;; data
+
 (define cached-stops (db:stops))
 
 (define (stops) cached-stops)
 
-(define (lon-slider-value->label prefix value)
-  (format "~a: ~a" prefix  (~> value
-                               (slider->lon)
-                               (exact->padded))))
+(define (process-filter stops processor accessor)
+  (apply processor (map (lambda (stop) (accessor stop)) stops)))
+
+(define (min-lon stops) (process-filter stops min stop-lon))
+(define (max-lon stops) (process-filter stops max stop-lon))
+(define (min-lat stops) (process-filter stops min stop-lat))
+(define (max-lat stops) (process-filter stops max stop-lat))
+
+;;; gui conversions
+
+; integer range for slider controls
+(define slider-max 16960)
+(define slider-min (- slider-max))
+
+(define (slider->value value min-value max-value)
+  (map-range value slider-min slider-max min-value max-value))
+
+(define slider->lon (curryr slider->value (min-lon (stops)) (max-lon (stops))))
+(define slider->lat (curryr slider->value (min-lat (stops)) (max-lat (stops))))
+
+(define (slider-value->label converter prefix value)
+  (format "~a: ~a" prefix (~> value
+                              (converter)
+                              (exact->padded))))
+
+(define lon-slider-value->label (curry slider-value->label slider->lon))
+(define lat-slider-value->label (curry slider-value->label slider->lat))
 
 (define make-min-lon-label (curry lon-slider-value->label "min. Lon."))
 (define make-max-lon-label (curry lon-slider-value->label "max. Lon."))
-
-; integer range for slider controls
-(define slider-min (- 16960))
-(define slider-max 16960)
+(define make-min-lat-label (curry lat-slider-value->label "min. Lat."))
+(define make-max-lat-label (curry lat-slider-value->label "max. Lat."))
 
 (define (map-range x in-min in-max out-min out-max)
   (let ([factor (/ (- out-max out-min) (- in-max in-min))])
@@ -33,17 +56,8 @@
              (max-lon (stops))
              slider-min slider-max))
 
-(define (slider->lon value)
-  (map-range value
-             slider-min slider-max
-             (min-lon (stops))
-             (max-lon (stops))))
 
-(define (max-lon stops)
-  (apply max (map (lambda (stop) (stop-lon stop)) stops)))
 
-(define (min-lon stops)
-  (apply min (map (lambda (stop) (stop-lon stop)) stops)))
 
 (define main-frame (new frame% [label "Stops"]
                    [width 400]
@@ -113,6 +127,25 @@
                                 [style '(plain horizontal)]
                                 [callback (lambda (slider event)
                                             (send slider set-label (make-max-lon-label (send slider get-value)))
+                                            (populate))])]
+
+            [lat-panel (new vertical-panel%
+                           [parent panel])]
+
+           [lat-checkbox (new check-box%
+                              [label "Latitude filter"]
+                              [parent lat-panel]
+                              [callback (lambda (checkbox event) (populate))])]
+
+           [min-lat-slider (new slider%
+                                [label (make-min-lat-label slider-min)]
+                                [parent lat-panel]
+                                [min-value slider-min]
+                                [max-value slider-max]
+                                [init-value slider-min]
+                                [style '(plain horizontal)]
+                                [callback (lambda (slider event)
+                                            (send slider set-label (make-min-lat-label (send slider get-value)))
                                             (populate))])]
            )
     (send list set-column-width 0 200 200 400)
