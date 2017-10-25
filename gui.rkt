@@ -36,15 +36,15 @@
                                           (for/lists (names lons lats)
                                             ([stop stops])
                                             (values (~a (stop-name stop))
-                                                    (~a (exact->padded-string (stop-lon stop)))
-                                                    (~a (exact->padded-string (stop-lon stop)))))])
+                                                    (~a (exact->padded (stop-lon stop)))
+                                                    (~a (exact->padded (stop-lon stop)))))])
                               (list names lons lats)))
   ; associate id as data
   (for ([index (in-naturals 0)]
         [stop stops])
     (send stop-list set-data index (stop-id stop))))
 
-(define (exact->padded-string e)
+(define (exact->padded e)
   (~a (exact->inexact e) #:width 10 #:right-pad-string "0"))
 
 (define (filter-stops stops filter-expr)
@@ -80,5 +80,23 @@
 (populate stops1)
 (create-filter-field main-frame stops1)
 
+; integer range for slider controls
+(define pos-min -1000000)
+(define pos-max 1000000)
+
+(define (map-range x in-min in-max out-min pos-min out-max pos-max)
+  (let ([factor (/ (- out-max out-min) (- in-max in-min))])
+    (+ (* (- x in-min) factor) out-min)))
+
+(new slider%
+     [label "minimal Longitude"]
+     [parent main-frame]
+     [min-value pos-min]
+     [max-value pos-max]
+     [init-value pos-min]
+     [style '(horizontal vertical-label)]
+     [callback (lambda (slider event)
+                 (send slider set-label
+                       (~a (send slider get-value))))])
 
 (send main-frame show #t)
