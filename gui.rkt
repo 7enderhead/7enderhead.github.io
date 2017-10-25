@@ -73,7 +73,13 @@
                                                              (min-lon (stops)))
                                                #:max-lon (if (send lon-checkbox get-value)
                                                              (slider->lon (send max-lon-slider get-value))
-                                                             (max-lon (stops)))))]
+                                                             (max-lon (stops)))
+                                               #:min-lat (if (send lat-checkbox get-value)
+                                                             (slider->lat (send min-lat-slider get-value))
+                                                             (min-lat (stops)))
+                                               #:max-lat (if (send lat-checkbox get-value)
+                                                             (slider->lat (send max-lat-slider get-value))
+                                                             (max-lat (stops)))))]
 
            [panel (new vertical-panel%
                        [parent parent])]
@@ -147,6 +153,17 @@
                                 [callback (lambda (slider event)
                                             (send slider set-label (make-min-lat-label (send slider get-value)))
                                             (populate))])]
+
+           [max-lat-slider (new slider%
+                                [label (make-max-lat-label slider-max)]
+                                [parent lat-panel]
+                                [min-value slider-min]
+                                [max-value slider-max]
+                                [init-value slider-max]
+                                [style '(plain horizontal)]
+                                [callback (lambda (slider event)
+                                            (send slider set-label (make-max-lat-label (send slider get-value)))
+                                            (populate))])]
            )
     (send list set-column-width 0 200 200 400)
     (send list set-column-width 1 100 100 100)
@@ -159,7 +176,7 @@
                                             ([stop stops])
                                             (values (~a (stop-name stop))
                                                     (~a (exact->padded (stop-lon stop)))
-                                                    (~a (exact->padded (stop-lon stop)))))])
+                                                    (~a (exact->padded (stop-lat stop)))))])
                               (list names lons lats)))
   ; associate id as data
   (for ([index (in-naturals 0)]
@@ -169,7 +186,20 @@
 (define (exact->padded e)
   (~a (exact->inexact e) #:width 10 #:right-pad-string "0"))
 
-(define (filter-stops stops filter-expr min-lon max-lon)
+(define (populate-list stop-list
+                  #:filter-expr [filter-expr ""]
+                  #:min-lon [min-lon (min-lon (stops))]
+                  #:max-lon [max-lon (max-lon (stops))]
+                  #:min-lat [min-lat (min-lat (stops))]
+                  #:max-lat [max-lat (max-lat (stops))])
+  (let ([selected-id (get-selected-id stop-list)])
+    (set-data stop-list (filter-stops (stops)
+                                      filter-expr
+                                      min-lon max-lon
+                                      min-lat max-lat))
+    (set-selection stop-list selected-id)))
+
+(define (filter-stops stops filter-expr min-lon max-lon min-lat max-lat)
   (filter
    (lambda (stop)
      (and (regexp-match
@@ -177,16 +207,10 @@
            (format "(?i:~a)" filter-expr)
            (stop-name stop))
           (>= (stop-lon stop) min-lon)
-          (<= (stop-lon stop) max-lon)))
+          (<= (stop-lon stop) max-lon)
+          (>= (stop-lat stop) min-lat)
+          (<= (stop-lat stop) max-lat)))
    stops))
-
-(define (populate-list stop-list
-                  #:filter-expr [filter-expr ""]
-                  #:min-lon [min-lon (min-lon (stops))]
-                  #:max-lon [max-lon (max-lon (stops))])
-  (let ([selected-id (get-selected-id stop-list)])
-    (set-data stop-list (filter-stops (stops) filter-expr min-lon max-lon))
-    (set-selection stop-list selected-id)))
 
 (define (get-selected-id stop-list)
   (if-let [selected-index (send stop-list get-selection)]
