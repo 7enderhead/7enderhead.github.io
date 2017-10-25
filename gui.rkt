@@ -2,11 +2,14 @@
 
 (require racket/gui/base)
 (require racket/format) ; for ~a
+(require threading)
 (require anaphoric)
 (require "structs.rkt")
 (require (prefix-in db: "db.rkt"))
 
-(define (stops) (db:stops))
+(define cached-stops (db:stops))
+
+(define (stops) cached-stops)
 
 (define main-frame (new frame% [label "Stops"]
                    [width 400]
@@ -81,22 +84,58 @@
 (create-filter-field main-frame stops1)
 
 ; integer range for slider controls
-(define pos-min -1000000)
-(define pos-max 1000000)
+(define slider-min (- 16960))
+(define slider-max 16960)
 
-(define (map-range x in-min in-max out-min pos-min out-max pos-max)
+(define (map-range x in-min in-max out-min out-max)
   (let ([factor (/ (- out-max out-min) (- in-max in-min))])
     (+ (* (- x in-min) factor) out-min)))
 
+(define (lon->slider lon)
+  (map-range lon
+             (min-lon (stops))
+             (max-lon (stops))
+             slider-min slider-max))
+
+(define (slider->lon value)
+  (map-range value
+             slider-min slider-max
+             (min-lon (stops))
+             (max-lon (stops))))
+
+(define (max-lon stops)
+  (apply max (map (lambda (stop) (stop-lon stop)) stops)))
+
+(define (min-lon stops)
+  (apply min (map (lambda (stop) (stop-lon stop)) stops)))
+
+(define (lon-slider-value->label prefix value)
+  (format "~a: ~a" prefix  (~> value
+                               (slider->lon)
+                               (exact->padded))))
+
+(define make-min-lon-label (curry lon-slider-value->label "min. Lon."))
+(define make-max-lon-label (curry lon-slider-value->label "max. Lon."))
+
 (new slider%
-     [label "minimal Longitude"]
+     [label (make-min-lon-label slider-min)]
      [parent main-frame]
-     [min-value pos-min]
-     [max-value pos-max]
-     [init-value pos-min]
-     [style '(horizontal vertical-label)]
+     [min-value slider-min]
+     [max-value slider-max]
+     [init-value slider-min]
+     [style '(plain horizontal)]
      [callback (lambda (slider event)
-                 (send slider set-label
-                       (~a (send slider get-value))))])
+                 (send slider set-label (make-min-lon-label (send slider get-value))))])
+
+(new slider%
+     [label (make-max-lon-label slider-max)]
+     [parent main-frame]
+     [min-value slider-min]
+     [max-value slider-max]
+     [init-value slider-max]
+     [style '(plain horizontal)]
+     [callback (lambda (slider event)
+                 (send slider set-label (make-max-lon-label (send slider get-value))))])
+
 
 (send main-frame show #t)
