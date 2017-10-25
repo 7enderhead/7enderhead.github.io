@@ -56,7 +56,10 @@
                                                                  "")
                                                #:min-lon (if (send lon-checkbox get-value)
                                                              (slider->lon (send min-lon-slider get-value))
-                                                             (min-lon (stops)))))]
+                                                             (min-lon (stops)))
+                                               #:max-lon (if (send lon-checkbox get-value)
+                                                             (slider->lon (send max-lon-slider get-value))
+                                                             (max-lon (stops)))))]
 
            [panel (new vertical-panel%
                        [parent parent])]
@@ -87,7 +90,8 @@
 
            [lon-checkbox (new check-box%
                               [label "Longitude filter"]
-                              [parent lon-panel])]
+                              [parent lon-panel]
+                              [callback (lambda (checkbox event) (populate))])]
            
            [min-lon-slider (new slider%
                                 [label (make-min-lon-label slider-min)]
@@ -108,14 +112,12 @@
                                 [init-value slider-max]
                                 [style '(plain horizontal)]
                                 [callback (lambda (slider event)
-                                            (send slider set-label (make-max-lon-label (send slider get-value))))])]
+                                            (send slider set-label (make-max-lon-label (send slider get-value)))
+                                            (populate))])]
            )
     (send list set-column-width 0 200 200 400)
     (send list set-column-width 1 100 100 100)
     (send list set-column-width 2 100 100 100)
-    
-    
-    
     list))
 
 (define (set-data stop-list stops)
@@ -134,21 +136,23 @@
 (define (exact->padded e)
   (~a (exact->inexact e) #:width 10 #:right-pad-string "0"))
 
-(define (filter-stops stops filter-expr min-lon)
+(define (filter-stops stops filter-expr min-lon max-lon)
   (filter
    (lambda (stop)
      (and (regexp-match
            ; case-insensitive substring match
            (format "(?i:~a)" filter-expr)
            (stop-name stop))
-          (>= (stop-lon stop) min-lon)))
+          (>= (stop-lon stop) min-lon)
+          (<= (stop-lon stop) max-lon)))
    stops))
 
 (define (populate-list stop-list
                   #:filter-expr [filter-expr ""]
-                  #:min-lon [min-lon (min-lon (stops))])
+                  #:min-lon [min-lon (min-lon (stops))]
+                  #:max-lon [max-lon (max-lon (stops))])
   (let ([selected-id (get-selected-id stop-list)])
-    (set-data stop-list (filter-stops (stops) filter-expr min-lon))
+    (set-data stop-list (filter-stops (stops) filter-expr min-lon max-lon))
     (set-selection stop-list selected-id)))
 
 (define (get-selected-id stop-list)
