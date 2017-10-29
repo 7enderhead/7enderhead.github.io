@@ -127,6 +127,9 @@
                                 [init-value slider-min]
                                 [style '(plain horizontal)]
                                 [callback (lambda (slider event)
+                                            (let ([max-lon (send max-lon-slider get-value)])
+                                              (when (> (send slider get-value) max-lon)
+                                                (send slider set-value max-lon)))
                                             (send slider set-label
                                                   (make-min-lon-label (send slider get-value)))
                                             (when (filter-lon?) (populate)))])]
@@ -139,7 +142,11 @@
                                 [init-value slider-max]
                                 [style '(plain horizontal)]
                                 [callback (lambda (slider event)
-                                            (send slider set-label (make-max-lon-label (send slider get-value)))
+                                            (let ([min-lon (send min-lon-slider get-value)])
+                                              (when (< (send slider get-value) min-lon)
+                                                (send slider set-value min-lon)))
+                                            (send slider set-label
+                                                  (make-max-lon-label (send slider get-value)))
                                             (when (filter-lon?) (populate)))])]
 
             [lat-panel (new vertical-panel%
@@ -159,7 +166,11 @@
                                 [init-value slider-min]
                                 [style '(plain horizontal)]
                                 [callback (lambda (slider event)
-                                            (send slider set-label (make-min-lat-label (send slider get-value)))
+                                            (let ([max-lat (send max-lat-slider get-value)])
+                                              (when (> (send slider get-value) max-lat)
+                                                (send slider set-value max-lat)))
+                                            (send slider set-label
+                                                  (make-min-lat-label (send slider get-value)))
                                             (when (filter-lat?) (populate)))])]
 
            [max-lat-slider (new slider%
@@ -170,7 +181,11 @@
                                 [init-value slider-max]
                                 [style '(plain horizontal)]
                                 [callback (lambda (slider event)
-                                            (send slider set-label (make-max-lat-label (send slider get-value)))
+                                            (let ([min-lat (send min-lat-slider get-value)])
+                                              (when (< (send slider get-value) min-lat)
+                                                (send slider set-value min-lat)))
+                                            (send slider set-label
+                                                  (make-max-lat-label (send slider get-value)))
                                             (when (filter-lat?) (populate)))])]
            )
     (send list set-column-width 0 200 200 400)
