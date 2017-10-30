@@ -17,7 +17,7 @@
 
 ; in meters
 (define (stop-distance s1 s2)
-  (/ (distance
+  (* (distance
       (deg-to-rad (stop-lat s1))
       (deg-to-rad (stop-lon s1))
       (deg-to-rad (stop-lat s2))

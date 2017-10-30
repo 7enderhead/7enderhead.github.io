@@ -21,7 +21,8 @@
 (define group (first groups))
 (for*/list ([s1 group]
             [s2 group]
-            #:when (<= (stop-distance s1 s2) 5))
-  (list s1 s2  (stop-distance s1 s2)))
+            #:unless (equal? s1 s2)
+            #:when (<= (stop-distance s1 s2) 10))
+  (list s1 s2 (stop-distance s1 s2)))
 
 (provide (all-defined-out))
