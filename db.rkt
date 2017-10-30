@@ -3,6 +3,7 @@
 (require db)
 (require setup/getinfo)
 (require "structs.rkt")
+(require "haversine.rkt")
 
 (define connection
   (let ([info (get-info/full ".")])
