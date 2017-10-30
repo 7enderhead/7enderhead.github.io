@@ -58,41 +58,67 @@
   (map (match-lambda [(list name accessor) name])
        (vector->list column-mappings)))
 
+(define data-list-box% (class list-box%
+                           (init label
+                                 parent
+                                 choices
+                                 [columns '("Column")]
+                                 [style '(single)]
+                                 [callback (lambda (control event) (void))]
+                                 [meta-data #f])
+                           (super-new [label label]
+                                      [parent parent]
+                                      [choices choices]
+                                      [columns columns]
+                                      [style style]
+                                      [callback callback])
+                           (define the-meta-data meta-data)
+                           (define/public (get-meta-data) the-meta-data)
+                           (define/public (set-meta-data new-meta-data) (set! the-meta-data new-meta-data))))
+
+(struct list-state (filter-expr min-lon max-lon min-lat max-lat sorting))
+
 (define (create-stop-list parent)
   (letrec ([filter-name? (lambda () (send filter-checkbox get-value))]
            [filter-lon? (lambda () (send lon-checkbox get-value))]
            [filter-lat? (lambda () (send lat-checkbox get-value))]
 
+           [list-state-from-controls
+            (lambda ()
+              (list-state
+               (if (filter-name?)
+                   (send filter-textfield get-value)
+                   "")
+               (if (filter-lon?)
+                   (slider->lon (send min-lon-slider get-value))
+                   (min-lon (stops)))
+               (if (filter-lon?)
+                   (slider->lon (send max-lon-slider get-value))
+                   (max-lon (stops)))
+               (if (filter-lat?)
+                   (slider->lat (send min-lat-slider get-value))
+                   (min-lat (stops)))
+               (if (filter-lat?)
+                   (slider->lat (send max-lat-slider get-value))
+                   (max-lat (stops)))
+               list-sorting))]
+           
            [populate (lambda ([sorting 0])
-                       (populate-list list
-                                      #:filter-expr (if (send filter-checkbox get-value)
-                                                        (send filter-textfield get-value)
-                                                        "")
-                                      #:min-lon (if (filter-lon?)
-                                                    (slider->lon (send min-lon-slider get-value))
-                                                    (min-lon (stops)))
-                                      #:max-lon (if (filter-lon?)
-                                                    (slider->lon (send max-lon-slider get-value))
-                                                    (max-lon (stops)))
-                                      #:min-lat (if (filter-lat?)
-                                                    (slider->lat (send min-lat-slider get-value))
-                                                    (min-lat (stops)))
-                                      #:max-lat (if (filter-lat?)
-                                                    (slider->lat (send max-lat-slider get-value))
-                                                    (max-lat (stops)))
-                                      #:sorting sorting))]
+                       (populate-list list (list-state-from-controls)))]
 
            [panel (new vertical-panel%
                        [parent parent])]
+
+           [list-sorting 0]
            
-           [list (new list-box%
+           [list (new data-list-box%
                       [label ""]
                       [parent panel]
                       [choices '()]
                       [columns column-names]
                       [style '(single column-headers)]
                       [callback (lambda (list event) (when (equal? 'list-box-column (send event get-event-type))
-                                                       (populate (send event get-column))))])]
+                                                       (set! list-sorting (send event get-column))))])]
 
            [filter-panel (new horizontal-panel%
                               [parent panel]
@@ -191,7 +217,7 @@
     (send list set-column-width 0 200 200 400)
     (send list set-column-width 1 100 100 100)
     (send list set-column-width 2 100 100 100)
-    (populate-list list)
+    (populate-list list (list-state-from-controls))
     list))
 
 (define (set-data stop-list stops)
@@ -210,32 +236,28 @@
 (define (exact->padded e)
   (~a (exact->inexact e) #:width 10 #:right-pad-string "0"))
 
-(define (populate-list stop-list
-                       #:filter-expr [filter-expr ""]
-                       #:min-lon [min-lon (min-lon (stops))]
-                       #:max-lon [max-lon (max-lon (stops))]
-                       #:min-lat [min-lat (min-lat (stops))]
-                       #:max-lat [max-lat (max-lat (stops))]
-                       #:sorting [sorting 0])
-  (let ([selected-id (get-selected-id stop-list)])
-    (set-data stop-list (~> (filter-stops (stops)
-                                          filter-expr
-                                          min-lon max-lon
-                                          min-lat max-lat)
-                            (sort-stops sorting)))
-    (set-selection stop-list selected-id)))
+(define (populate-list stop-list new-state)
+  (let ([selected-id (get-selected-id stop-list)]
+        [old-state (send stop-list get-meta-data)])
+    (when (not (equal? old-state new-state))
+      (send stop-list set-meta-data new-state)
+      (set-data stop-list (~> (filter-stops (stops) new-state)
+                              (sort-stops (list-state-sorting new-state))))
+      (set-selection stop-list selected-id)))
+  ; simulate slow system
+  (sleep 0.2))
 
-(define (filter-stops stops filter-expr min-lon max-lon min-lat max-lat)
+(define (filter-stops stops list-state)
   (filter
    (lambda (stop)
      (and (regexp-match
            ; case-insensitive substring match
-           (format "(?i:~a)" filter-expr)
+           (format "(?i:~a)" (list-state-filter-expr list-state))
            (stop-name stop))
-          (>= (stop-lon stop) min-lon)
-          (<= (stop-lon stop) max-lon)
-          (>= (stop-lat stop) min-lat)
-          (<= (stop-lat stop) max-lat)))
+          (>= (stop-lon stop) (list-state-min-lon list-state))
+          (<= (stop-lon stop) (list-state-max-lon list-state))
+          (>= (stop-lat stop) (list-state-min-lat list-state))
+          (<= (stop-lat stop) (list-state-max-lat list-state))))
    stops))
 
 (define (sort-stops stops sorting-index)
