@@ -15,7 +15,7 @@ which itself extract the code from rosettacode.org, where it is published under 
      (asin (sqrt (+ (h lat1 lat2)
                     (* (cos lat1) (cos lat2) (h long1 long2)))))))
 
-(define (deg-to-rad d m s)
+(define (deg-to-rad d [m 0] [s 0])
   (* (/ pi 180) (+ d (/ m 60) (/ s 3600))))
 
 (provide (all-defined-out))
