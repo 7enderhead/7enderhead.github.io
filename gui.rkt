@@ -77,27 +77,27 @@
                            (define/public (get-meta-data) the-meta-data)
                            (define/public (set-meta-data new-meta-data) (set! the-meta-data new-meta-data))))
 
-(struct list-state (filter-expr min-lon max-lon min-lat max-lat sorting)
+(struct list-layout (filter-expr min-lon max-lon min-lat max-lat sorting)
   #:transparent
   #:methods gen:custom-write
   [(define write-proc
      (make-constructor-style-printer
-      (lambda (s) 'list-state)
-      (lambda (s) (list (list-state-filter-expr s)
-                        (list-state-min-lon s)
-                        (list-state-max-lon s)
-                        (list-state-min-lat s)
-                        (list-state-max-lat s)
-                        (list-state-sorting s)))))])
+      (lambda (l) 'list-layout)
+      (lambda (l) (list (list-layout-filter-expr l)
+                        (list-layout-min-lon l)
+                        (list-layout-max-lon l)
+                        (list-layout-min-lat l)
+                        (list-layout-max-lat l)
+                        (list-layout-sorting l)))))])
 
-(define (create-stop-list parent)
+(define (create-stop-selection parent [selection-id #f] [callback #f])
   (letrec ([filter-name? (lambda () (send filter-checkbox get-value))]
            [filter-lon? (lambda () (send lon-checkbox get-value))]
            [filter-lat? (lambda () (send lat-checkbox get-value))]
 
-           [list-state-from-controls
+           [list-layout-from-controls
             (lambda ()
-              (list-state
+              (list-layout
                (if (filter-name?)
                    (send filter-textfield get-value)
                    "")
@@ -118,6 +118,32 @@
            [panel (new vertical-panel%
                        [parent parent])]
 
+           [selected-stop #f]
+
+           [selection-panel (new horizontal-panel%
+                                 [parent panel]
+                                 [stretchable-width #t]
+                                 [stretchable-height #f])]
+
+           [set-selection-message (lambda (stop)
+                                    (send selection-message set-label
+                                          (if stop
+                                              (format "~a (~a - ~a)"
+                                                      (stop-name stop)
+                                                      (exact->padded (stop-lon stop))
+                                                      (exact->padded (stop-lat stop)))
+                                              "no stop selected")))]
+
+           [selection-message (new message%
+                                   [label ""]
+                                   [parent selection-panel]
+                                   [font (make-object font%
+                                           (+ 2 (send normal-control-font get-size))
+                                           (send normal-control-font get-family)
+                                           'normal
+                                           'bold)]
+                                   [stretchable-width #t])]
+
            [list-sorting 0]
            
            [list (new data-list-box%
@@ -126,8 +152,15 @@
                       [choices '()]
                       [columns column-names]
                       [style '(single column-headers)]
-                      [callback (lambda (list event) (when (equal? 'list-box-column (send event get-event-type))
-                                                       (set! list-sorting (send event get-column))))])]
+                      [callback (lambda (list event)
+                                  (let ([event-type (send event get-event-type)])
+                                    (cond
+                                      ((equal? event-type 'list-box)
+                                       (let ([new-stop (get-selected-stop list)])
+                                         (set! selected-stop new-stop)
+                                         (when callback (callback selection-id new-stop))))
+                                      ((equal? event-type 'list-box-column)
+                                       (set! list-sorting (send event get-column))))))])]
 
            [filter-panel (new horizontal-panel%
                               [parent panel]
@@ -178,7 +211,7 @@
                                             (send slider set-label
                                                   (make-max-lon-label (send slider get-value))))])]
 
-            [lat-panel (new vertical-panel%
+           [lat-panel (new vertical-panel%
                            [parent panel]
                            [stretchable-height #f])]
 
@@ -217,12 +250,13 @@
     (send list set-column-width 0 200 200 400)
     (send list set-column-width 1 100 100 100)
     (send list set-column-width 2 100 100 100)
-    (populate-list list (list-state-from-controls))
+    (populate-list list (list-layout-from-controls))
     (new timer%
-         [interval 500]
+         [interval 100]
          [notify-callback (lambda ()
-                            (populate-list list (list-state-from-controls)))])
-    list))
+                            (set-selection-message selected-stop)
+                            (populate-list list (list-layout-from-controls)))])
+    selected-stop))
 
 (define (set-data stop-list stops)
   (send/apply stop-list set (let-values ([(names lons lats)
@@ -232,37 +266,34 @@
                                                     (~a (exact->padded (stop-lon stop)))
                                                     (~a (exact->padded (stop-lat stop)))))])
                               (list names lons lats)))
-  ; associate id as data
+  ; associate stop structure as data
   (for ([index (in-naturals 0)]
         [stop stops])
-    (send stop-list set-data index (stop-id stop))))
+    (send stop-list set-data index stop)))
 
 (define (exact->padded e)
   (~a (exact->inexact e) #:width 10 #:right-pad-string "0"))
 
 (define (populate-list stop-list new-state)
-  (let ([selected-id (get-selected-id stop-list)]
-        [old-state (send stop-list get-meta-data)])
+  (let ([old-state (send stop-list get-meta-data)])
     (when (not (equal? old-state new-state))
-      (displayln "different state")
       (send stop-list set-meta-data new-state)
       (set-data stop-list (~> (filter-stops (stops) new-state)
-                              (sort-stops (list-state-sorting new-state))))
-      (set-selection stop-list selected-id)))
+                              (sort-stops (list-layout-sorting new-state))))))
   ; simulate slow system
   (sleep 0.2))
 
-(define (filter-stops stops list-state)
+(define (filter-stops stops list-layout)
   (filter
    (lambda (stop)
      (and (regexp-match
            ; case-insensitive substring match
-           (format "(?i:~a)" (list-state-filter-expr list-state))
+           (format "(?i:~a)" (list-layout-filter-expr list-layout))
            (stop-name stop))
-          (>= (stop-lon stop) (list-state-min-lon list-state))
-          (<= (stop-lon stop) (list-state-max-lon list-state))
-          (>= (stop-lat stop) (list-state-min-lat list-state))
-          (<= (stop-lat stop) (list-state-max-lat list-state))))
+          (>= (stop-lon stop) (list-layout-min-lon list-layout))
+          (<= (stop-lon stop) (list-layout-max-lon list-layout))
+          (>= (stop-lat stop) (list-layout-min-lat list-layout))
+          (<= (stop-lat stop) (list-layout-max-lat list-layout))))
    stops))
 
 (define (sort-stops stops sorting-index)
@@ -275,19 +306,10 @@
                         (string<? value1 value2)
                         (< value1 value2)))))))
 
-(define (get-selected-id stop-list)
+(define (get-selected-stop stop-list)
   (if-let [selected-index (send stop-list get-selection)]
           (send stop-list get-data selected-index)
           #f))
-
-(define (set-selection stop-list id)
-  (when-let [index (index-for-id stop-list id)]
-            (send stop-list set-selection index)))
-
-(define (index-for-id stop-list id)
-  (for/or ([index (in-range 0 (send stop-list get-number))])
-    (let ([current-id (send stop-list get-data index)])
-      (if (equal? current-id id) index #f))))
 
 ;;; initialisation
 
@@ -295,7 +317,6 @@
                    [width 400]
                    [height 800]))
  
-(define stops1 (create-stop-list main-frame))
-#;(define stops2 (create-stop-list main-frame))
+(create-stop-selection main-frame 'stop1 (lambda (id new-stop) (printf "~a: ~a\n" id new-stop)))
 
 (send main-frame show #t)
