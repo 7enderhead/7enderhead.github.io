@@ -3,6 +3,7 @@
 (require racket/struct)
 
 (struct stop (id lon lat name alt-name)
+  #:transparent
   #:methods gen:custom-write
   [(define write-proc
      (make-constructor-style-printer

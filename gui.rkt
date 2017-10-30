@@ -2,6 +2,7 @@
 
 (require racket/gui/base)
 (require racket/format)
+(require racket/struct)
 (require threading)
 (require anaphoric)
 (require "structs.rkt")
@@ -76,7 +77,18 @@
                            (define/public (get-meta-data) the-meta-data)
                            (define/public (set-meta-data new-meta-data) (set! the-meta-data new-meta-data))))
 
-(struct list-state (filter-expr min-lon max-lon min-lat max-lat sorting))
+(struct list-state (filter-expr min-lon max-lon min-lat max-lat sorting)
+  #:transparent
+  #:methods gen:custom-write
+  [(define write-proc
+     (make-constructor-style-printer
+      (lambda (s) 'list-state)
+      (lambda (s) (list (list-state-filter-expr s)
+                        (list-state-min-lon s)
+                        (list-state-max-lon s)
+                        (list-state-min-lat s)
+                        (list-state-max-lat s)
+                        (list-state-sorting s)))))])
 
 (define (create-stop-list parent)
   (letrec ([filter-name? (lambda () (send filter-checkbox get-value))]
@@ -103,9 +115,6 @@
                    (max-lat (stops)))
                list-sorting))]
            
-           [populate (lambda ([sorting 0])
-                       (populate-list list (list-state-from-controls)))]
-
            [panel (new vertical-panel%
                        [parent parent])]
 
@@ -127,14 +136,11 @@
            [filter-checkbox (new check-box%
                                  [label "Name filter"]
                                  [parent filter-panel]
-                                 [value #t]
-                                 [callback (lambda (checkbox event) (populate))])]
+                                 [value #t])]
 
            [filter-textfield (new text-field%
                                   [label ""]
-                                  [parent filter-panel]
-                                  [callback (lambda (filter-textfield event)
-                                              (when (filter-name?) (populate)))])]
+                                  [parent filter-panel])]
 
            [lon-panel (new vertical-panel%
                            [parent panel]
@@ -142,8 +148,7 @@
 
            [lon-checkbox (new check-box%
                               [label "Longitude filter"]
-                              [parent lon-panel]
-                              [callback (lambda (checkbox event) (populate))])]
+                              [parent lon-panel])]
            
            [min-lon-slider (new slider%
                                 [label (make-min-lon-label slider-min)]
@@ -157,8 +162,7 @@
                                               (when (> (send slider get-value) max-lon)
                                                 (send slider set-value max-lon)))
                                             (send slider set-label
-                                                  (make-min-lon-label (send slider get-value)))
-                                            (when (filter-lon?) (populate)))])]
+                                                  (make-min-lon-label (send slider get-value))))])]
 
            [max-lon-slider (new slider%
                                 [label (make-max-lon-label slider-max)]
@@ -172,8 +176,7 @@
                                               (when (< (send slider get-value) min-lon)
                                                 (send slider set-value min-lon)))
                                             (send slider set-label
-                                                  (make-max-lon-label (send slider get-value)))
-                                            (when (filter-lon?) (populate)))])]
+                                                  (make-max-lon-label (send slider get-value))))])]
 
             [lat-panel (new vertical-panel%
                            [parent panel]
@@ -181,8 +184,7 @@
 
            [lat-checkbox (new check-box%
                               [label "Latitude filter"]
-                              [parent lat-panel]
-                              [callback (lambda (checkbox event) (populate))])]
+                              [parent lat-panel])]
 
            [min-lat-slider (new slider%
                                 [label (make-min-lat-label slider-min)]
@@ -196,8 +198,7 @@
                                               (when (> (send slider get-value) max-lat)
                                                 (send slider set-value max-lat)))
                                             (send slider set-label
-                                                  (make-min-lat-label (send slider get-value)))
-                                            (when (filter-lat?) (populate)))])]
+                                                  (make-min-lat-label (send slider get-value))))])]
 
            [max-lat-slider (new slider%
                                 [label (make-max-lat-label slider-max)]
@@ -211,13 +212,16 @@
                                               (when (< (send slider get-value) min-lat)
                                                 (send slider set-value min-lat)))
                                             (send slider set-label
-                                                  (make-max-lat-label (send slider get-value)))
-                                            (when (filter-lat?) (populate)))])]
+                                                  (make-max-lat-label (send slider get-value))))])]
            )
     (send list set-column-width 0 200 200 400)
     (send list set-column-width 1 100 100 100)
     (send list set-column-width 2 100 100 100)
     (populate-list list (list-state-from-controls))
+    (new timer%
+         [interval 500]
+         [notify-callback (lambda ()
+                            (populate-list list (list-state-from-controls)))])
     list))
 
 (define (set-data stop-list stops)
@@ -240,6 +244,7 @@
   (let ([selected-id (get-selected-id stop-list)]
         [old-state (send stop-list get-meta-data)])
     (when (not (equal? old-state new-state))
+      (displayln "different state")
       (send stop-list set-meta-data new-state)
       (set-data stop-list (~> (filter-stops (stops) new-state)
                               (sort-stops (list-state-sorting new-state))))
