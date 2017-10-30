@@ -90,7 +90,7 @@
                         (list-layout-max-lat l)
                         (list-layout-sorting l)))))])
 
-(define (create-stop-selection parent [selection-id #f] [callback #f])
+(define (create-stop-selection parent [selection-id #f] [callback #f] [focus #f])
   (letrec ([filter-name? (lambda () (send filter-checkbox get-value))]
            [filter-lon? (lambda () (send lon-checkbox get-value))]
            [filter-lat? (lambda () (send lat-checkbox get-value))]
@@ -126,13 +126,13 @@
                                  [stretchable-height #f])]
 
            [set-selection-message (lambda (stop)
-                                    (send selection-message set-label
-                                          (if stop
-                                              (format "~a (~a - ~a)"
-                                                      (stop-name stop)
-                                                      (exact->padded (stop-lon stop))
-                                                      (exact->padded (stop-lat stop)))
-                                              "no stop selected")))]
+                                    (let ([new-label (if stop
+                                                         (format "~a (~a - ~a)"
+                                                                 (stop-name stop)
+                                                                 (exact->padded (stop-lon stop))
+                                                                 (exact->padded (stop-lat stop)))
+                                                         "no stop selected")])
+                                      (send selection-message set-label new-label)))]
 
            [selection-message (new message%
                                    [label ""]
@@ -152,19 +152,23 @@
                       [choices '()]
                       [columns column-names]
                       [style '(single column-headers)]
+                      [min-height 200]
                       [callback (lambda (list event)
                                   (let ([event-type (send event get-event-type)])
                                     (cond
                                       ((equal? event-type 'list-box)
                                        (let ([new-stop (get-selected-stop list)])
-                                         (set! selected-stop new-stop)
-                                         (when callback (callback selection-id new-stop))))
+                                         (when (not (equal? selected-stop new-stop))
+                                           (set! selected-stop new-stop)
+                                           (set-selection-message selected-stop)
+                                           (when callback (callback selection-id new-stop)))))
                                       ((equal? event-type 'list-box-column)
                                        (set! list-sorting (send event get-column))))))])]
 
            [filter-panel (new horizontal-panel%
                               [parent panel]
-                              [stretchable-height #f])]
+                              [stretchable-height #f]
+                              [border 10])]
 
            [filter-checkbox (new check-box%
                                  [label "Name filter"]
@@ -177,11 +181,12 @@
 
            [lon-panel (new vertical-panel%
                            [parent panel]
-                           [stretchable-height #f])]
+                           [stretchable-height #f]
+                           [border 10])]
 
            [lon-checkbox (new check-box%
                               [label "Longitude filter"]
-                              [parent lon-panel])]
+                              [parent (new horizontal-panel% [parent lon-panel])])]
            
            [min-lon-slider (new slider%
                                 [label (make-min-lon-label slider-min)]
@@ -213,11 +218,12 @@
 
            [lat-panel (new vertical-panel%
                            [parent panel]
-                           [stretchable-height #f])]
+                           [stretchable-height #f]
+                           [border 10])]
 
            [lat-checkbox (new check-box%
                               [label "Latitude filter"]
-                              [parent lat-panel])]
+                              [parent (new horizontal-panel% [parent lat-panel])])]
 
            [min-lat-slider (new slider%
                                 [label (make-min-lat-label slider-min)]
@@ -254,9 +260,9 @@
     (new timer%
          [interval 100]
          [notify-callback (lambda ()
-                            (set-selection-message selected-stop)
                             (populate-list list (list-layout-from-controls)))])
-    selected-stop))
+    (when focus (send filter-textfield focus))
+    (void)))
 
 (define (set-data stop-list stops)
   (send/apply stop-list set (let-values ([(names lons lats)
@@ -274,20 +280,21 @@
 (define (exact->padded e)
   (~a (exact->inexact e) #:width 10 #:right-pad-string "0"))
 
-(define (populate-list stop-list new-state)
-  (let ([old-state (send stop-list get-meta-data)])
-    (when (not (equal? old-state new-state))
-      (send stop-list set-meta-data new-state)
-      (set-data stop-list (~> (filter-stops (stops) new-state)
-                              (sort-stops (list-layout-sorting new-state))))))
-  ; simulate slow system
-  (sleep 0.2))
+(define (populate-list stop-list new-layout)
+  (let ([old-layout (send stop-list get-meta-data)])
+    (when (not (equal? old-layout new-layout))
+      (send stop-list set-meta-data new-layout)
+      (set-data stop-list (~> (filter-stops (stops) new-layout)
+                              (sort-stops (list-layout-sorting new-layout)))))))
+
+(define (filter-expr-match? expr string)
+  (with-handlers ([(lambda (e) #t) (lambda (e) #t)])
+    (regexp-match? expr string)))
 
 (define (filter-stops stops list-layout)
   (filter
    (lambda (stop)
-     (and (regexp-match
-           ; case-insensitive substring match
+     (and (filter-expr-match?
            (format "(?i:~a)" (list-layout-filter-expr list-layout))
            (stop-name stop))
           (>= (stop-lon stop) (list-layout-min-lon list-layout))
@@ -316,7 +323,11 @@
 (define main-frame (new frame% [label "Stops"]
                    [width 400]
                    [height 800]))
+
+(define selection-panel (new horizontal-panel%
+                             [parent main-frame]))
  
-(create-stop-selection main-frame 'stop1 (lambda (id new-stop) (printf "~a: ~a\n" id new-stop)))
+(create-stop-selection selection-panel 'stop1 (lambda (id new-stop) (printf "~a: ~a\n" id new-stop)) #t)
+(create-stop-selection selection-panel 'stop2 (lambda (id new-stop) (printf "~a: ~a\n" id new-stop)))
 
 (send main-frame show #t)
