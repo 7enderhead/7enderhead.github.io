@@ -5,7 +5,8 @@
 (require racket/struct)
 (require threading)
 (require anaphoric)
-(require "structs.rkt")
+(require "stop.rkt")
+(require "util.rkt")
 (require (prefix-in db: "db.rkt"))
 
 ;;; data
@@ -13,14 +14,6 @@
 (define cached-stops (db:stops))
 
 (define (stops) cached-stops)
-
-(define (process-filter stops processor accessor)
-  (apply processor (map (lambda (stop) (accessor stop)) stops)))
-
-(define (min-lon stops) (process-filter stops min stop-lon))
-(define (max-lon stops) (process-filter stops max stop-lon))
-(define (min-lat stops) (process-filter stops min stop-lat))
-(define (max-lat stops) (process-filter stops max stop-lat))
 
 ;;; gui conversions
 
@@ -37,7 +30,7 @@
 (define (slider-value->label converter prefix value)
   (format "~a: ~a" prefix (~> value
                               (converter)
-                              (exact->padded))))
+                              coord->string)))
 
 (define lon-slider-value->label (curry slider-value->label slider->lon))
 (define lat-slider-value->label (curry slider-value->label slider->lat))
@@ -129,8 +122,8 @@
                                     (let ([new-label (if stop
                                                          (format "~a (~a - ~a)"
                                                                  (stop-name stop)
-                                                                 (exact->padded (stop-lon stop))
-                                                                 (exact->padded (stop-lat stop)))
+                                                                 (coord->string (stop-lon stop))
+                                                                 (coord->string (stop-lat stop)))
                                                          "no stop selected")])
                                       (send selection-message set-label new-label)))]
 
@@ -269,16 +262,13 @@
                                           (for/lists (names lons lats)
                                             ([stop stops])
                                             (values (~a (stop-name stop))
-                                                    (~a (exact->padded (stop-lon stop)))
-                                                    (~a (exact->padded (stop-lat stop)))))])
+                                                    (~a (coord->string (stop-lon stop)))
+                                                    (~a (coord->string (stop-lat stop)))))])
                               (list names lons lats)))
   ; associate stop structure as data
   (for ([index (in-naturals 0)]
         [stop stops])
     (send stop-list set-data index stop)))
-
-(define (exact->padded e)
-  (~a (exact->inexact e) #:width 10 #:right-pad-string "0"))
 
 (define (populate-list stop-list new-layout)
   (let ([old-layout (send stop-list get-meta-data)])
@@ -305,7 +295,7 @@
 
 (define (sort-stops stops sorting-index)
   (let ([accessor (eval (second (vector-ref column-mappings sorting-index))
-                        (module->namespace "structs.rkt"))])
+                        (module->namespace "stop.rkt"))])
     (sort stops (lambda (stop1 stop2)
                   (let ([value1 (accessor stop1)]
                         [value2 (accessor stop2)])
