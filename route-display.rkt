@@ -41,4 +41,7 @@
 
 (send main-frame show #t)
 
+(require "db.rkt")
+(send display show-routes (routes-for-stop 288385378))
+
 (provide (all-defined-out))
