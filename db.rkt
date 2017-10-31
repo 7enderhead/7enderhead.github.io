@@ -28,14 +28,15 @@
                         route-id))])
     (apply routes route-ids)))
 
-(define (routes id . ids)
-  (let* ([ids (cons id ids)]
-         [id-list (string-join (map ~a ids) ",")]
-         [statement (virtual-statement
-                     (format "select * from route where id in (~a)" id-list))]
-         [route-data (query-rows connection statement)])
-    (for/list ([route-datum route-data])
-      (apply route (vector->list route-datum)))))
+(define (routes . ids)
+  (if (empty? ids)
+      '()
+      (let* ([id-list (string-join (map ~a ids) ",")]
+             [statement (virtual-statement
+                         (format "select * from route where id in (~a)" id-list))]
+             [route-data (query-rows connection statement)])
+        (for/list ([route-datum route-data])
+          (apply route (vector->list route-datum))))))
 
 #|
 ; tests for grouping stops with same name and given maximum distance

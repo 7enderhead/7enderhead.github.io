@@ -122,24 +122,26 @@
 
            [list-sorting 0]
            
-           [list (new data-list-box%
-                      [label ""]
-                      [parent panel]
-                      [choices '()]
-                      [columns column-names]
-                      [style '(single column-headers)]
-                      [min-height 200]
-                      [callback (lambda (list event)
-                                  (let ([event-type (send event get-event-type)])
-                                    (cond
-                                      ((equal? event-type 'list-box)
-                                       (let ([new-stop (get-selected-stop list)])
-                                         (when (not (equal? selected-stop new-stop))
-                                           (set! selected-stop new-stop)
-                                           (set-selection-message selected-stop)
-                                           (when callback (callback selection-id new-stop)))))
-                                      ((equal? event-type 'list-box-column)
-                                       (set! list-sorting (send event get-column))))))])]
+           [list (let ([list (new data-list-box%
+                                  [label ""]
+                                  [parent panel]
+                                  [choices '()]
+                                  [columns column-names]
+                                  [style '(single column-headers)]
+                                  [min-height 200]
+                                  [callback (lambda (list event)
+                                              (let ([event-type (send event get-event-type)])
+                                                (cond
+                                                  ((equal? event-type 'list-box)
+                                                   (let ([new-stop (get-selected-stop list)])
+                                                     (when (not (equal? selected-stop new-stop))
+                                                       (set! selected-stop new-stop)
+                                                       (set-selection-message selected-stop)
+                                                       (when callback (callback selection-id new-stop)))))
+                                                  ((equal? event-type 'list-box-column)
+                                                   (set! list-sorting (send event get-column))))))])])
+                   (send list set-column-widths '(300 200 400) 100 100)
+                   list)]
 
            [filter-panel (new horizontal-panel%
                               [parent panel]
@@ -228,9 +230,6 @@
                                                 (send slider set-value min-lat)))
                                             (send slider set-label
                                                   (make-max-lat-label (send slider get-value))))])])
-    (send list set-column-width 0 200 200 400)
-    (send list set-column-width 1 100 100 100)
-    (send list set-column-width 2 100 100 100)
     (populate-list list (list-layout-from-controls))
     (new timer%
          [interval 100]
@@ -238,9 +237,6 @@
                             (populate-list list (list-layout-from-controls)))])
     (when focus (send filter-textfield focus))
     (void)))
-
-(define (create-connection-display parent)
-  (void))
 
 (define (set-data stop-list stops)
   (send/apply stop-list set (let-values ([(names lons lats)
@@ -296,12 +292,12 @@
 ;;; initialisation
 
 (define main-frame (new frame% [label "Stops"]
-                   [width 400]
-                   [height 800]))
+                        [width 400]
+                        [height 800]))
 
 (define selection-panel (new horizontal-panel%
                              [parent main-frame]))
- 
+
 (create-stop-selection selection-panel 'stop1 (lambda (id new-stop) (printf "~a: ~a\n" id new-stop)) #t)
 (create-stop-selection selection-panel 'stop2 (lambda (id new-stop) (printf "~a: ~a\n" id new-stop)))
 
