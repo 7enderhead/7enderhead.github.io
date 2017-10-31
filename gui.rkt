@@ -7,6 +7,7 @@
 (require anaphoric)
 (require "stop.rkt")
 (require "util.rkt")
+(require "data-list-box.rkt")
 (require (prefix-in db: "db.rkt"))
 
 ;;; data
@@ -51,24 +52,6 @@
 (define column-names
   (map (match-lambda [(list name accessor) name])
        (vector->list column-mappings)))
-
-(define data-list-box% (class list-box%
-                           (init label
-                                 parent
-                                 choices
-                                 [columns '("Column")]
-                                 [style '(single)]
-                                 [callback (lambda (control event) (void))]
-                                 [meta-data #f])
-                           (super-new [label label]
-                                      [parent parent]
-                                      [choices choices]
-                                      [columns columns]
-                                      [style style]
-                                      [callback callback])
-                           (define the-meta-data meta-data)
-                           (define/public (get-meta-data) the-meta-data)
-                           (define/public (set-meta-data new-meta-data) (set! the-meta-data new-meta-data))))
 
 (struct list-layout (filter-expr min-lon max-lon min-lat max-lat sorting)
   #:transparent
@@ -244,8 +227,7 @@
                                               (when (< (send slider get-value) min-lat)
                                                 (send slider set-value min-lat)))
                                             (send slider set-label
-                                                  (make-max-lat-label (send slider get-value))))])]
-           )
+                                                  (make-max-lat-label (send slider get-value))))])])
     (send list set-column-width 0 200 200 400)
     (send list set-column-width 1 100 100 100)
     (send list set-column-width 2 100 100 100)
