@@ -239,6 +239,9 @@
     (when focus (send filter-textfield focus))
     (void)))
 
+(define (create-connection-display parent)
+  (void))
+
 (define (set-data stop-list stops)
   (send/apply stop-list set (let-values ([(names lons lats)
                                           (for/lists (names lons lats)
