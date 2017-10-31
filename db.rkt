@@ -18,6 +18,8 @@
   (for/list ([row (query-rows connection "select * from stop")])
     (apply stop (vector->list row))))
 
+#|
+; tests for grouping stops with same name and given maximum distance
 (define groups (group-by (lambda (stop) (stop-name stop)) (stops)))
 (define group (first groups))
 (for*/list ([s1 group]
@@ -25,5 +27,6 @@
             #:unless (equal? s1 s2)
             #:when (<= (distance s1 s2) (info 'compound-distance)))
   (list s1 s2 (distance s1 s2)))
+|#
 
 (provide (all-defined-out))

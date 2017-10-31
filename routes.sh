@@ -23,6 +23,6 @@ awk -F"," -v OFS="," '{split($2, a, " "); print $1, a[1] "," a[2], $3, $4}' > $F
 mysql -h $SERVER -u $USER -p$PASSWORD --local-infile -e " \
 LOAD DATA LOCAL INFILE '$FIFO' INTO TABLE $DB.$TABLE \
   FIELDS TERMINATED BY ',' \
-  LINES TERMINATED BY '\n';" \
+  LINES TERMINATED BY '\r\n';" \
 ) && # load data from named pipe into table
 \rm -f $FIFO_BASE ; \rm -f $FIFO # clean up temp files
