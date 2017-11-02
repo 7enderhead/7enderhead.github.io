@@ -3,8 +3,7 @@
 (require db)
 (require setup/getinfo)
 (require racket/format)
-(require "stop.rkt")
-(require "route.rkt")
+(require "data-defs.rkt")
 
 (define info (get-info/full "."))
 

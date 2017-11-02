@@ -5,9 +5,10 @@
 (require racket/struct)
 (require threading)
 (require anaphoric)
-(require "stop.rkt")
+(require "data-defs.rkt")
 (require "util.rkt")
 (require "data-list-box.rkt")
+(require "stop-selector.rkt")
 (require (prefix-in db: "db.rkt"))
 
 ;;; data
@@ -258,10 +259,6 @@
       (set-data stop-list (~> (filter-stops (stops) new-layout)
                               (sort-stops (list-layout-sorting new-layout)))))))
 
-(define (filter-expr-match? expr string)
-  (with-handlers ([(lambda (e) #t) (lambda (e) #t)])
-    (regexp-match? expr string)))
-
 (define (filter-stops stops list-layout)
   (filter
    (lambda (stop)
@@ -298,7 +295,14 @@
 (define selection-panel (new horizontal-panel%
                              [parent main-frame]))
 
-(create-stop-selection selection-panel 'stop1 (lambda (id new-stop) (printf "~a: ~a\n" id new-stop)) #t)
+(define selector1 (new stop-selector%
+                       [stop-getter stops]
+                       [parent main-frame]
+                       [selection-id 'stop1]
+                       [callback (lambda (id new-stop) (printf "~a: ~a\n" id new-stop))]
+                       [focus #t]))
+
+#;(create-stop-selection selection-panel 'stop1 (lambda (id new-stop) (printf "~a: ~a\n" id new-stop)) #t)
 (create-stop-selection selection-panel 'stop2 (lambda (id new-stop) (printf "~a: ~a\n" id new-stop)))
 
 (send main-frame show #t)
