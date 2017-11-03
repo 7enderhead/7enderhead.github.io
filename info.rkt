@@ -1,5 +1,5 @@
 #lang info
-(define db-server "localhost")
+(define db-server "md1hbmsc")
 (define db-user "root")
 (define db-password "MySql123")
 (define db-name "map")

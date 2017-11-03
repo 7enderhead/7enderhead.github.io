@@ -36,7 +36,7 @@
 
 (define (min-lon stops) (process-filter stops min stop-lon default-min))
 (define (max-lon stops) (process-filter stops max stop-lon default-max))
-(define (min-lat stops) (process-filter stops stop-lat default-min))
+(define (min-lat stops) (process-filter stops min stop-lat default-min))
 (define (max-lat stops) (process-filter stops max stop-lat default-max))
 
 ;;; Route

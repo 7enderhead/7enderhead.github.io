@@ -273,7 +273,7 @@
 
 (define (sort-stops stops sorting-index)
   (let ([accessor (eval (second (vector-ref column-mappings sorting-index))
-                        (module->namespace "stop.rkt"))])
+                        (module->namespace "data-defs.rkt"))])
     (sort stops (lambda (stop1 stop2)
                   (let ([value1 (accessor stop1)]
                         [value2 (accessor stop2)])

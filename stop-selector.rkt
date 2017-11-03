@@ -64,8 +64,8 @@
 
     
     
-    (define list
-      (let ([list
+    (define data-list
+      (let ([data-list
              (new data-list-box%
                   [label ""]
                   [parent panel]
@@ -73,20 +73,20 @@
                   [columns column-names]
                   [style '(single column-headers)]
                   [min-height 200]
-                  [callback (lambda (list event)
+                  [callback (lambda (data-list event)
                               (let ([event-type (send event get-event-type)])
                                 (cond
                                   ((equal? event-type 'list-box)
-                                   (let ([new-stop (get-selected-stop list)])
+                                   (let ([new-stop (selected-stop-from-list)])
                                      (when (not (equal? selected-stop new-stop))
                                        (set! selected-stop new-stop)
                                        (set-selection-message selected-stop)
                                        (when callback (callback selection-id new-stop)))))
                                   ((equal? event-type 'list-box-column)
                                    (set! list-sorting (send event get-column))))))])])
-        (send list set-column-widths '(300 200 400) 100 100)
-        #;(populate-list list)
-        list))
+        (send data-list set-column-widths '(300 200 400) 100 100)
+        #;(populate-list data-list)
+        data-list))
 
     
     
@@ -203,34 +203,34 @@
            (send filter-textfield get-value)
            "")
        (if (filter-lon?)
-           (slider->lon (send min-lon-slider get-value))
+           (slider->lon (stop-getter) (send min-lon-slider get-value))
            (min-lon (stop-getter)))
        (if (filter-lon?)
-           (slider->lon (send max-lon-slider get-value))
+           (slider->lon (stop-getter) (send max-lon-slider get-value))
            (max-lon (stop-getter)))
        (if (filter-lat?)
-           (slider->lat (send min-lat-slider get-value))
+           (slider->lat (stop-getter) (send min-lat-slider get-value))
            (min-lat (stop-getter)))
        (if (filter-lat?)
-           (slider->lat (send max-lat-slider get-value))
+           (slider->lat (stop-getter) (send max-lat-slider get-value))
            (max-lat (stop-getter)))
        list-sorting))
     
     (define (populate-list)
-      (let ([old-layout (send list get-meta-data)]
+      (let ([old-layout (send data-list get-meta-data)]
             [new-layout (list-layout-from-controls)])
         (when (not (equal? old-layout new-layout))
-          (send list set-meta-data new-layout)
-          (set-data list (~> (filter-stops (stop-getter) new-layout)
-                             (sort-stops (list-layout-sorting new-layout))))))) 
+          (send data-list set-meta-data new-layout)
+          (set-data (~> (filter-stops (stop-getter) new-layout)
+                        (sort-stops (list-layout-sorting new-layout))))))) 
 
-    (define (get-selected-stop)
-      (if-let [selected-index (send list get-selection)]
-              (send list get-data selected-index)
+    (define (selected-stop-from-list)
+      (if-let [selected-index (send data-list get-selection)]
+              (send data-list get-data selected-index)
               #f))
     
     (define (set-data stops)
-      (send/apply list set (let-values ([(names lons lats)
+      (send/apply data-list set (let-values ([(names lons lats)
                                          (for/lists (names lons lats)
                                            ([stop stops])
                                            (values (~a (stop-name stop))
@@ -240,7 +240,7 @@
       ; associate stop structure as data
       (for ([index (in-naturals 0)]
             [stop stops])
-        (send list set-data index stop)))
+        (send data-list set-data index stop)))
 
     (define (filter-stops stops list-layout)
       (filter
@@ -269,6 +269,11 @@
            [interval 100]
            [notify-callback (lambda ()
                               (populate-list))]))
+
+    ;;; public methods
+
+    (define/public (get-selected-stop)
+      selected-stop)
     ))
 
 (provide stop-selector%)

@@ -17,16 +17,15 @@
 (define (slider->lat stops value)
   (slider->value value (min-lat stops) (max-lat stops)))
 
-(define (slider-value->label converter prefix value)
+(define (value->label prefix value)
   (format "~a: ~a" prefix (~> value
-                              (converter)
                               coord->string)))
 
 (define (lon-slider-value->label stops prefix value)
-  (slider-value->label (slider->lon stops) prefix value))
+  (value->label  prefix (slider->lon stops value)))
 
 (define (lat-slider-value->label stops prefix value)
-  (slider-value->label (slider->lat stops) prefix value))
+  (value->label prefix (slider->lat stops value)))
 
 (define (make-min-lon-label stops value)
   (lon-slider-value->label stops "min. Lon." value))
