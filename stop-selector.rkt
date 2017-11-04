@@ -4,9 +4,13 @@
 (require racket/struct)
 (require anaphoric)
 (require threading)
-(require "data-defs.rkt")
+(require (rename-in "data-defs.rkt"
+                    (min-lon def:min-lon)
+                    (max-lon def:max-lon)
+                    (min-lat def:min-lat)
+                    (max-lat def:max-lat)))
 (require "data-list-box.rkt")
-(require "slider.rkt")
+(require "slider-converter.rkt")
 (require "util.rkt")
 
 (struct list-layout (filter-expr min-lon max-lon min-lat max-lat sorting)
@@ -32,7 +36,9 @@
 
 (define stop-selector%
   (class object%
-    (init stop-getter parent [selection-id #f] [callback #f] [focus #f])
+
+    (init stops parent [selection-id #f] [callback #f] [focus #f])
+
     (super-new)
 
     ;;; internal fields
@@ -40,6 +46,17 @@
     (define selected-stop #f)
     (define list-sorting 0)
 
+    (define min-lon (def:min-lon stops))
+    (define max-lon (def:max-lon stops))
+    (define min-lat (def:min-lat stops))
+    (define max-lat (def:max-lat stops) )
+    
+    (define slider-converter
+      (new slider-converter%
+           [min-lon min-lon]
+           [max-lon max-lon]
+           [min-lat min-lat]
+           [max-lat max-lat]))
       
     ;;; control fields
     
@@ -61,11 +78,10 @@
                    'normal
                    'bold)]
            [stretchable-width #t]))
-
-    
     
     (define data-list
       (let ([data-list
+             
              (new data-list-box%
                   [label ""]
                   [parent panel]
@@ -88,8 +104,6 @@
         #;(populate-list data-list)
         data-list))
 
-    
-    
     (define filter-panel (new horizontal-panel%
                               [parent panel]
                               [stretchable-height #f]
@@ -115,7 +129,7 @@
            
     (define min-lon-slider
       (new slider%
-           [label (make-min-lon-label (stop-getter) slider-min)]
+           [label (send slider-converter min-lon-label slider-min)]
            [parent lon-panel]
            [min-value slider-min]
            [max-value slider-max]
@@ -126,11 +140,11 @@
                          (when (> (send slider get-value) max-lon)
                            (send slider set-value max-lon)))
                        (send slider set-label
-                             (make-min-lon-label (stop-getter) (send slider get-value))))]))
+                             (send slider-converter min-lon-label (send slider get-value))))]))
 
     (define max-lon-slider
       (new slider%
-           [label (make-max-lon-label (stop-getter) slider-max)]
+           [label (send slider-converter max-lon-label slider-max)]
            [parent lon-panel]
            [min-value slider-min]
            [max-value slider-max]
@@ -141,7 +155,7 @@
                          (when (< (send slider get-value) min-lon)
                            (send slider set-value min-lon)))
                        (send slider set-label
-                             (make-max-lon-label (stop-getter) (send slider get-value))))]))
+                             (send slider-converter max-lon-label (send slider get-value))))]))
 
     (define lat-panel (new vertical-panel%
                            [parent panel]
@@ -154,7 +168,7 @@
 
     (define min-lat-slider
       (new slider%
-           [label (make-min-lat-label (stop-getter) slider-min)]
+           [label (send slider-converter min-lat-label slider-min)]
            [parent lat-panel]
            [min-value slider-min]
            [max-value slider-max]
@@ -165,11 +179,11 @@
                          (when (> (send slider get-value) max-lat)
                            (send slider set-value max-lat)))
                        (send slider set-label
-                             (make-min-lat-label (stop-getter) (send slider get-value))))]))
+                             (send slider-converter min-lat-label (send slider get-value))))]))
 
     (define max-lat-slider
       (new slider%
-           [label (make-max-lat-label (stop-getter) slider-max)]
+           [label (send slider-converter max-lat-label slider-max)]
            [parent lat-panel]
            [min-value slider-min]
            [max-value slider-max]
@@ -180,7 +194,7 @@
                          (when (< (send slider get-value) min-lat)
                            (send slider set-value min-lat)))
                        (send slider set-label
-                             (make-max-lat-label (stop-getter) (send slider get-value))))]))
+                             (send slider-converter max-lat-label (send slider get-value))))]))
     
     ;;; private methods
 
@@ -203,17 +217,17 @@
            (send filter-textfield get-value)
            "")
        (if (filter-lon?)
-           (slider->lon (stop-getter) (send min-lon-slider get-value))
-           (min-lon (stop-getter)))
+           (send slider-converter slider->lon (send min-lon-slider get-value))
+           min-lon)
        (if (filter-lon?)
-           (slider->lon (stop-getter) (send max-lon-slider get-value))
-           (max-lon (stop-getter)))
+           (send slider-converter slider->lon (send max-lon-slider get-value))
+           max-lon)
        (if (filter-lat?)
-           (slider->lat (stop-getter) (send min-lat-slider get-value))
-           (min-lat (stop-getter)))
+           (send slider-converter slider->lat (send min-lat-slider get-value))
+           min-lat)
        (if (filter-lat?)
-           (slider->lat (stop-getter) (send max-lat-slider get-value))
-           (max-lat (stop-getter)))
+           (send slider-converter slider->lat (send max-lat-slider get-value))
+           max-lat)
        list-sorting))
     
     (define (populate-list)
@@ -221,7 +235,7 @@
             [new-layout (list-layout-from-controls)])
         (when (not (equal? old-layout new-layout))
           (send data-list set-meta-data new-layout)
-          (set-data (~> (filter-stops (stop-getter) new-layout)
+          (set-data (~> (filter-stops stops new-layout)
                         (sort-stops (list-layout-sorting new-layout))))))) 
 
     (define (selected-stop-from-list)
@@ -231,12 +245,12 @@
     
     (define (set-data stops)
       (send/apply data-list set (let-values ([(names lons lats)
-                                         (for/lists (names lons lats)
-                                           ([stop stops])
-                                           (values (~a (stop-name stop))
-                                                   (~a (coord->string (stop-lon stop)))
-                                                   (~a (coord->string (stop-lat stop)))))])
-                             (list names lons lats)))
+                                              (for/lists (names lons lats)
+                                                ([stop stops])
+                                                (values (~a (stop-name stop))
+                                                        (~a (coord->string (stop-lon stop)))
+                                                        (~a (coord->string (stop-lat stop)))))])
+                                  (list names lons lats)))
       ; associate stop structure as data
       (for ([index (in-naturals 0)]
             [stop stops])
