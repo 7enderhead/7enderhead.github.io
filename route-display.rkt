@@ -6,6 +6,7 @@
 
 (define route-display%
   (class object%
+
     (init parent)
 
     (super-new)
@@ -19,7 +20,7 @@
                        [choices '()]
                        [style '(single column-headers)]
                        [columns '("Type" "Number" "Start" "End")])])
-        (send list set-column-widths 50 50 300 300)
+        (send list set-column-widths 50 70 300 300)
         list))
 
     (define/public (show-routes routes)
