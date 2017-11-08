@@ -30,4 +30,4 @@ LOAD DATA LOCAL INFILE '$FIFO' INTO TABLE $DB.$TABLE \
   FIELDS TERMINATED BY '\t' \
   LINES TERMINATED BY '\n';" \
 ) && # load data from named pipe into table
-\rm -f $FIFO_BASE ; \rm -f $FIFO ; \rm -f $TMP # clean up temp files
+rm -f $FIFO_BASE ; rm -f $FIFO ; rm -f $TMP # clean up temp files
