@@ -17,7 +17,7 @@
 
 ;;; initialisation
 
-(define main-frame (new frame% [label "Stops"]
+(define main-frame (new frame% [label "Route21"]
                         [width 1000]
                         [height 800]))
 
