@@ -3,6 +3,7 @@
 (require racket/struct)
 (require racket/generic)
 (require racket/format)
+(require threading)
 (require "util.rkt")
 (require (prefix-in hav: "haversine.rkt"))
 
@@ -35,8 +36,8 @@
 
 (define (process-filter stops processor accessor [default-value #f])
   (if (not (empty? stops))
-   (apply processor (map (lambda (stop) (accessor stop)) stops))
-   default-value))
+      (apply processor (map (lambda (stop) (accessor stop)) stops))
+      default-value))
 
 (define default-min 0)
 (define default-max 0)
@@ -58,6 +59,11 @@
       (lambda (c) 'compound-stop)
       (lambda (c) (list (compound-stop-stops c)))))])
 
+(define (compound-stops-by-name stops)
+  (~>> stops
+       (group-by (lambda (stop) (stop-name stop)))
+       (map (lambda (stops) (compound-stop stops)))))
+
 ;;; Route
 
 (struct route (id type number start end)
@@ -71,13 +77,5 @@
                         (route-number r)
                         (route-start r)
                         (route-end r)))))])
-
-#;(provide gen:compoundable
-         constituents
-         stop
-         route)
-
-#;(provide (contract-out
-          [struct compound-stop ((stops list?))]))
 
 (provide (all-defined-out))
