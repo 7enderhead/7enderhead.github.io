@@ -1,13 +1,20 @@
 #lang racket
 
-;;; Stop
-
 (require racket/struct)
+(require racket/generic)
+(require racket/format)
 (require "util.rkt")
 (require (prefix-in hav: "haversine.rkt"))
 
+(define-generics compoundable
+  (constituents compoundable))
+
+;;; Stop
+
 (struct stop (id lon lat name alt-name)
   #:transparent
+  #:methods gen:compoundable
+  [(define (constituents stop) (list stop))]
   #:methods gen:custom-write
   [(define write-proc
      (make-constructor-style-printer
@@ -39,6 +46,18 @@
 (define (min-lat stops) (process-filter stops min stop-lat default-min))
 (define (max-lat stops) (process-filter stops max stop-lat default-max))
 
+;;; Compound
+
+(struct compound-stop (stops)
+  #:transparent
+  #:methods gen:compoundable
+  [(define (constituents compound) (compound-stop-stops compound))]
+  #:methods gen:custom-write
+  [(define write-proc
+     (make-constructor-style-printer
+      (lambda (c) 'compound-stop)
+      (lambda (c) (list (compound-stop-stops c)))))])
+
 ;;; Route
 
 (struct route (id type number start end)
@@ -52,5 +71,13 @@
                         (route-number r)
                         (route-start r)
                         (route-end r)))))])
+
+#;(provide gen:compoundable
+         constituents
+         stop
+         route)
+
+#;(provide (contract-out
+          [struct compound-stop ((stops list?))]))
 
 (provide (all-defined-out))
