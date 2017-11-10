@@ -18,10 +18,10 @@
 (struct stop (id lon lat name alt-name)
   #:transparent
   #:methods gen:compoundable
-  [(define (constituents stop) (list stop))
+  [(define (constituents stop) (set stop))
    (define (name stop) (stop-name stop))
-   (define (lon-range stop) (stop-lon stop))
-   (define (lat-range stop) (stop-lat stop))]
+   (define (lon-range stop) (cons (stop-lon stop) (stop-lon stop)))
+   (define (lat-range stop) (cons (stop-lat stop) (stop-lat stop)))]
   #:methods gen:custom-write
   [(define write-proc
      (make-constructor-style-printer
@@ -83,9 +83,16 @@
 
 (define (format-range range)
   (match-let ([(cons min max) range])
-    (format "~a - ~a"
-            (coord->string min)
-            (coord->string max))))
+    (if (equal? min max)
+        (coord->string min)
+        (format "~a - ~a"
+                (coord->string min)
+                (coord->string max)))))
+
+(define (range-< range1 range2)
+  (match-let ([(cons min1 _) range1]
+              [(cons min2 _) range2])
+    (< min1 min2)))
 
 (define (wrap-stops-as-compounds stops)
   (map (lambda (stop) (compound-stop (set stop))) stops))
@@ -94,6 +101,13 @@
   (~>> stops
        (group-by (lambda (stop) (stop-name stop)))
        (map (lambda (stops) (compound-stop (list->set stops))))))
+
+(define (all-constituents compounds)
+  (set->list (for/fold
+              ([all (mutable-set)])
+              ([compound compounds])
+               (set-union! all (constituents compound))
+               all)))
 
 ;;; Route
 

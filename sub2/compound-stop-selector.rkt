@@ -37,7 +37,7 @@
 (define compound-stop-selector%
   (class object%
 
-    (init stops parent [selection-id #f] [callback #f] [focus #f])
+    (init initial-stops parent [selection-id #f] [callback #f] [focus #f])
 
     (super-new)
 
@@ -45,6 +45,7 @@
     
     (define selected-stop #f)
     (define list-sorting 0)
+    (define stops initial-stops)
 
     (define min-lon (def:min-lon stops))
     (define max-lon (def:max-lon stops))
@@ -100,7 +101,6 @@
                                   ((equal? event-type 'list-box-column)
                                    (set! list-sorting (send event get-column))))))])])
         (send data-list set-column-widths '(300 200 400) 100 100)
-        #;(populate-list data-list)
         data-list))
 
     (define filter-panel (new horizontal-panel%
@@ -275,7 +275,7 @@
                             [value2 (accessor stop2)])
                         (if (string? value1)
                             (string<? value1 value2)
-                            (< value1 value2)))))))
+                            (range-< value1 value2)))))))
 
     (define update-timer
       (new timer%
