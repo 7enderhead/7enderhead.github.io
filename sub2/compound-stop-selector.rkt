@@ -4,6 +4,7 @@
 (require racket/struct)
 (require anaphoric)
 (require threading)
+(require sugar/coerce)
 (require (rename-in "data-defs.rkt"
                     (min-lon def:min-lon)
                     (max-lon def:max-lon)
@@ -45,12 +46,13 @@
     
     (define selected-stop #f)
     (define list-sorting 0)
-    (define stops initial-stops)
+    (define stops (compound-stops-by-name initial-stops))
+    (define constituents (->list (all-constituents stops)))
 
-    (define min-lon (def:min-lon stops))
-    (define max-lon (def:max-lon stops))
-    (define min-lat (def:min-lat stops))
-    (define max-lat (def:max-lat stops))
+    (define min-lon (def:min-lon constituents))
+    (define max-lon (def:max-lon constituents))
+    (define min-lat (def:min-lat constituents))
+    (define max-lat (def:max-lat constituents))
     
     (define slider-converter
       (new slider-converter%
@@ -260,11 +262,11 @@
        (lambda (stop)
          (and (filter-expr-match?
                (format "(?i:~a)" (list-layout-filter-expr list-layout))
-               (stop-name stop))
-              (>= (stop-lon stop) (list-layout-min-lon list-layout))
-              (<= (stop-lon stop) (list-layout-max-lon list-layout))
-              (>= (stop-lat stop) (list-layout-min-lat list-layout))
-              (<= (stop-lat stop) (list-layout-max-lat list-layout))))
+               (name stop))
+              (>= (car (lon-range stop)) (list-layout-min-lon list-layout))
+              (<= (cdr (lon-range stop)) (list-layout-max-lon list-layout))
+              (>= (car (lat-range stop)) (list-layout-min-lat list-layout))
+              (<= (cdr (lat-range stop)) (list-layout-max-lat list-layout))))
        stops))
 
     (define (sort-stops stops sorting-index)
