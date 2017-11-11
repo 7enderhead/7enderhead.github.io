@@ -103,11 +103,11 @@
        (map (lambda (stops) (compound-stop (list->set stops))))))
 
 (define (all-constituents compounds)
-  (for/fold
-   ([all (mutable-set)])
-   ([compound compounds])
-    (set-union! all (constituents compound))
-    all))
+  (set-union (set) (for/fold
+                    ([all (mutable-set)])
+                    ([compound compounds])
+                     (set-union! all (constituents compound))
+                     all)))
 
 ;;; Route
 
