@@ -66,7 +66,8 @@
     ;;; control fields
     
     (define panel (new vertical-panel%
-                       [parent parent]))
+                       [parent parent]
+                       [border 10]))
 
     (define selection-panel (new horizontal-panel%
                                  [parent panel]
@@ -84,10 +85,25 @@
                    'bold)]
            [stretchable-width #t]))
 
+    (define coordinates-panel (new horizontal-panel%
+                                   [parent panel]
+                                   [stretchable-width #t]
+                                   [stretchable-height #f]))
+    
+    (define coordinates-message
+      (new message%
+           [label ""]
+           [parent coordinates-panel]
+           [font (make-object font%
+                   (+ 1 (send normal-control-font get-size))
+                   (send normal-control-font get-family)
+                   'normal
+                   'bold)]
+           [stretchable-width #t]))
+
     (define compound-panel (new horizontal-panel%
                                 [parent panel]
-                                [stretchable-height #f]
-                                [border 10]))
+                                [stretchable-height #f]))
     
     (define compound-checkbox (new check-box%
                                    [label "Compound stops with same name"]
@@ -222,12 +238,15 @@
 
     (define (set-selection-message stop)
       (let ([new-label (if stop
-                           (format "~a (~a / ~a)"
-                                   (name stop)
-                                   (format-range (lon-range stop))
-                                   (format-range (lat-range stop)))
-                           "no stop selected")])
-        (send selection-message set-label new-label)))
+                           (name stop)
+                           "no stop selected")]
+            [new-coordinates (if stop
+                                 (format "(~a / ~a)"
+                                         (format-range (lon-range stop))
+                                         (format-range (lat-range stop)))
+                                 "")])
+        (send selection-message set-label new-label)
+        (send coordinates-message set-label new-coordinates)))
 
     (define (filter-name?) (send filter-checkbox get-value))
     (define (filter-lon?) (send lon-checkbox get-value))
@@ -310,6 +329,7 @@
 
     (define/public (get-selected-stop)
       selected-stop)
-    ))
+
+    (set-selection-message selected-stop)))
 
 (provide compound-stop-selector%)
