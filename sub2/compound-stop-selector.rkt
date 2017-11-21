@@ -46,7 +46,9 @@
     
     (define selected-stop #f)
     (define list-sorting 0)
-    (define stops (compound-stops-by-name initial-stops))
+    (define stops initial-stops)
+    (define compound-stops (compound-stops-by-name initial-stops))
+    (define show-compounds? #f)
     (define constituents (->list (all-constituents stops)))
 
     (define min-lon (def:min-lon constituents))
@@ -81,6 +83,25 @@
                    'normal
                    'bold)]
            [stretchable-width #t]))
+
+    (define compound-panel (new horizontal-panel%
+                                [parent panel]
+                                [stretchable-height #f]
+                                [border 10]))
+    
+    (define compound-checkbox (new check-box%
+                                   [label "Compound stops with same name"]
+                                   [parent compound-panel]
+                                   [value #f]
+                                   [callback
+                                    (lambda (checkbox event)
+                                      (let ([checked? (send checkbox get-value)])
+                                        (when (not (equal? checked? show-compounds?))
+                                          (set! show-compounds? checked?)
+                                          (if show-compounds?
+                                              (set! stops compound-stops)
+                                              (set! stops initial-stops))
+                                          (populate-list #t))))]))
     
     (define data-list
       (let ([data-list
@@ -231,10 +252,10 @@
            max-lat)
        list-sorting))
     
-    (define (populate-list)
+    (define (populate-list [force? #f])
       (let ([old-layout (send data-list get-meta-data)]
             [new-layout (list-layout-from-controls)])
-        (when (not (equal? old-layout new-layout))
+        (when (or force? (not (equal? old-layout new-layout)))
           (send data-list set-meta-data new-layout)
           (set-data (~> (filter-stops stops new-layout)
                         (sort-stops (list-layout-sorting new-layout))))))) 

@@ -17,9 +17,13 @@
 
 ;;; initialisation
 
-(define main-frame (new frame% [label "Route21"]
-                        [width 1000]
-                        [height 800]))
+(define main-frame
+  (new (class frame%
+         (super-new [label "Route21"]
+                    [width 1000]
+                    [height 800])
+         #;(define/augment (on-close)
+             (exit)))))
 
 (define selection-panel (new horizontal-panel%
                              [parent main-frame]))
