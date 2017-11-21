@@ -1,6 +1,7 @@
 #lang racket
 
 (require racket/gui/base)
+(require framework)
 (require racket/format)
 (require threading)
 (require "data-provider.rkt")
@@ -22,8 +23,8 @@
          (super-new [label "Route21"]
                     [width 1000]
                     [height 800])
-         #;(define/augment (on-close)
-             (exit)))))
+         (define/augment (on-close)
+           (when (exit:user-oks-exit) (exit:exit))))))
 
 (define selection-panel (new horizontal-panel%
                              [parent main-frame]))
