@@ -12,9 +12,12 @@
     (init parent provider stops)
 
     (super-new)
+
+    (define panel (new vertical-panel%
+                       [parent parent]))
     
     (define selection-panel (new horizontal-panel%
-                                 [parent parent]))
+                                 [parent panel]))
 
     (define selector1 (new compound-stop-selector%
                            [initial-stops stops]
@@ -33,7 +36,7 @@
                            [focus #f]))
 
     (define route-display (new route-display%
-                               [parent parent]))
+                               [parent panel]))
 
     (define (display-routes)
       (let ([compound-stop1 (send selector1 get-selected-stop)]

@@ -24,15 +24,17 @@
          #;(define/augment (on-close)
              (when (exit:user-oks-exit) (exit:exit))))))
 
-(define tab-panel (new tab-panel%
-                       [parent main-frame]
-                       [choices '("Info" "Edit")]
-                       [callback
-                        (lambda (panel event)
-                          (let ([show-info? (if (equal? 0 (send panel get-selection)) #t #f)])
-                            (send info-tab show show-info?)
-                            (send edit-tab show (not show-info?)))
-                          )]))
+(define tab-panel
+  (new tab-panel%
+       [parent main-frame]
+       [choices '("Info" "Edit")]
+       [callback
+        (lambda (panel event)
+          (let ([active-tab (if (equal? "Info" (send panel get-item-label (send panel get-selection)))
+                                info-tab
+                                edit-tab)])
+            (send panel change-children (lambda (children)
+                                          (list active-tab)))))]))
 
 (define info-tab (new vertical-panel%
                       [parent tab-panel]))
@@ -43,12 +45,12 @@
                         [stops stops]))
 
 (define edit-tab (new vertical-panel%
-                        [parent tab-panel]))
+                      [parent tab-panel]))
+
+(send tab-panel delete-child edit-tab)
 
 (define test-message (new message%
                           [label "Edit"]
-                          [parent edit-panel]))
-
-(send edit-tab show #f)
+                          [parent edit-tab]))
 
 (send main-frame show #t)
