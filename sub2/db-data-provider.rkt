@@ -29,6 +29,18 @@
               (for/list ([row (query-rows connection "select * from stop")])
                 (apply stop (vector->list row)))))
       all-stops)
+
+    (define all-stops-by-id #f)
+    
+    (define/public (stops-by-id)
+      (when (not all-stops-by-id)
+        (set! all-stops-by-id
+              (for/fold
+                    ([all (make-hash)])
+                    ([stop (stops)])
+                     (hash-set! all (stop-id stop) stop)
+                     all)))
+      all-stops-by-id)
     
     (define/public (routes-for-stop stop-id)
       (let* ([statement (virtual-statement
