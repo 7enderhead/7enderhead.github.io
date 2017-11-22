@@ -1,55 +1,56 @@
 #lang racket
 
 (require racket/gui/base)
-(require racket/format)
-(require racket/class/iop)
+(require framework)
+(require threading)
 (require "data-provider.rkt")
 (require "data-provider-factory.rkt")
 (require "data-defs.rkt")
-(require "stop-selector.rkt")
-(require "route-display.rkt")
+(require "info-panel.rkt")
 
 ;;; data
 
 (define provider (data-provider))
 
-(define stops (send/i provider data-provider<%> stops))
+(define stops (send provider stops))
 
 ;;; initialisation
 
-(define main-frame (new frame% [label "Route21"]
-                        [width 1000]
-                        [height 800]))
+(define main-frame
+  (new (class frame%
+         (super-new [label "Route21"]
+                    [width 1000]
+                    [height 800])
+         #;(define/augment (on-close)
+             (when (exit:user-oks-exit) (exit:exit))))))
 
-(define selection-panel (new horizontal-panel%
-                             [parent main-frame]))
+(define tab-panel
+  (new tab-panel%
+       [parent main-frame]
+       [choices '("Info" "Edit")]
+       [callback
+        (lambda (panel event)
+          (let ([active-tab (if (equal? "Info" (send panel get-item-label (send panel get-selection)))
+                                info-tab
+                                edit-tab)])
+            (send panel change-children (lambda (children)
+                                          (list active-tab)))))]))
 
-(define selector1 (new stop-selector%
-                       [stops stops]
-                       [parent selection-panel]
-                       [selection-id 'stop1]
-                       [callback (lambda (id new-stop)
-                                   (display-routes))]
-                       [focus #t]))
+(define info-tab (new vertical-panel%
+                      [parent tab-panel]))
 
-(define selector2 (new stop-selector%
-                       [stops stops]
-                       [parent selection-panel]
-                       [selection-id 'stop2]
-                       [callback (lambda (id new-stop)
-                                   (display-routes))]
-                       [focus #f]))
+(define info-panel (new info-panel%
+                        [parent info-tab]
+                        [provider provider]
+                        [stops stops]))
 
-(define routes (new route-display%
-                    [parent main-frame]))
+(define edit-tab (new vertical-panel%
+                      [parent tab-panel]))
 
-(define (display-routes)
-  (let ([stop1 (send selector1 get-selected-stop)]
-        [stop2 (send selector2 get-selected-stop)])
-    (when (and stop1 stop2)
-      (let* ([routes1 (send/i provider data-provider<%> routes-for-stop (stop-id stop1))]
-             [routes2 (send/i provider data-provider<%> routes-for-stop (stop-id stop2))]
-             [common-routes (set-intersect routes1 routes2)])
-        (send routes show-routes common-routes)))))
-  
+(send tab-panel delete-child edit-tab)
+
+(define test-message (new message%
+                          [label "Edit"]
+                          [parent edit-tab]))
+
 (send main-frame show #t)

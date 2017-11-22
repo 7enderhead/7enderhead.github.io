@@ -4,6 +4,7 @@
 (require racket/struct)
 (require anaphoric)
 (require threading)
+(require sugar/coerce)
 (require (rename-in "data-defs.rkt"
                     (min-lon def:min-lon)
                     (max-lon def:max-lon)
@@ -26,18 +27,23 @@
                         (list-layout-max-lat l)
                         (list-layout-sorting l)))))])
 
-(define column-mappings #(("Name" stop-name)
-                          ("Longitude" stop-lon)
-                          ("Latitude" stop-lat)))
+(define column-mappings #(("Name" name)
+                          ("Longitude" lon-range)
+                          ("Latitude" lat-range)))
 
 (define column-names
   (map (match-lambda [(list name accessor) name])
        (vector->list column-mappings)))
 
-(define stop-selector%
+(define compound-stop-selector%
   (class object%
 
-    (init stops parent [selection-id #f] [callback #f] [focus #f])
+    (init initial-stops
+          parent
+          [selection-id #f]
+          [callback #f]
+          [focus #f]
+          [allow-compounds #t])
 
     (super-new)
 
@@ -45,11 +51,15 @@
     
     (define selected-stop #f)
     (define list-sorting 0)
+    (define stops initial-stops)
+    (define compound-stops (compound-stops-by-name initial-stops))
+    (define show-compounds? #f)
+    (define constituents (->list (all-constituents stops)))
 
-    (define min-lon (def:min-lon stops))
-    (define max-lon (def:max-lon stops))
-    (define min-lat (def:min-lat stops))
-    (define max-lat (def:max-lat stops) )
+    (define min-lon (def:min-lon constituents))
+    (define max-lon (def:max-lon constituents))
+    (define min-lat (def:min-lat constituents))
+    (define max-lat (def:max-lat constituents))
     
     (define slider-converter
       (new slider-converter%
@@ -61,7 +71,8 @@
     ;;; control fields
     
     (define panel (new vertical-panel%
-                       [parent parent]))
+                       [parent parent]
+                       [border 10]))
 
     (define selection-panel (new horizontal-panel%
                                  [parent panel]
@@ -78,10 +89,46 @@
                    'normal
                    'bold)]
            [stretchable-width #t]))
+
+    (define coordinates-panel (new horizontal-panel%
+                                   [parent panel]
+                                   [stretchable-width #t]
+                                   [stretchable-height #f]))
+    
+    (define coordinates-message
+      (new message%
+           [label ""]
+           [parent coordinates-panel]
+           [font (make-object font%
+                   (+ 1 (send normal-control-font get-size))
+                   (send normal-control-font get-family)
+                   'normal
+                   'bold)]
+           [stretchable-width #t]))
+
+    (define compound-panel (new horizontal-panel%
+                                [parent panel]
+                                [stretchable-height #f]))
+    
+    (define compound-checkbox
+      (new check-box%
+           [label "Compound stops with same name"]
+           [parent compound-panel]
+           [value #f]
+           [callback
+            (lambda (checkbox event)
+              (let ([checked? (send checkbox get-value)])
+                (when (not (equal? checked? show-compounds?))
+                  (set! show-compounds? checked?)
+                  (if show-compounds?
+                      (set! stops compound-stops)
+                      (set! stops initial-stops))
+                  (populate-list #t))))]))
+
+    (send compound-checkbox show allow-compounds)
     
     (define data-list
       (let ([data-list
-             
              (new data-list-box%
                   [label ""]
                   [parent panel]
@@ -101,7 +148,6 @@
                                   ((equal? event-type 'list-box-column)
                                    (set! list-sorting (send event get-column))))))])])
         (send data-list set-column-widths '(300 200 400) 100 100)
-        #;(populate-list data-list)
         data-list))
 
     (define filter-panel (new horizontal-panel%
@@ -200,12 +246,15 @@
 
     (define (set-selection-message stop)
       (let ([new-label (if stop
-                           (format "~a (~a - ~a)"
-                                   (stop-name stop)
-                                   (coord->string (stop-lon stop))
-                                   (coord->string (stop-lat stop)))
-                           "no stop selected")])
-        (send selection-message set-label new-label)))
+                           (name stop)
+                           "no stop selected")]
+            [new-coordinates (if stop
+                                 (format "(~a / ~a)"
+                                         (format-range (lon-range stop))
+                                         (format-range (lat-range stop)))
+                                 "")])
+        (send selection-message set-label new-label)
+        (send coordinates-message set-label new-coordinates)))
 
     (define (filter-name?) (send filter-checkbox get-value))
     (define (filter-lon?) (send lon-checkbox get-value))
@@ -230,10 +279,10 @@
            max-lat)
        list-sorting))
     
-    (define (populate-list)
+    (define (populate-list [force? #f])
       (let ([old-layout (send data-list get-meta-data)]
             [new-layout (list-layout-from-controls)])
-        (when (not (equal? old-layout new-layout))
+        (when (or force? (not (equal? old-layout new-layout)))
           (send data-list set-meta-data new-layout)
           (set-data (~> (filter-stops stops new-layout)
                         (sort-stops (list-layout-sorting new-layout))))))) 
@@ -247,9 +296,9 @@
       (send/apply data-list set (let-values ([(names lons lats)
                                               (for/lists (names lons lats)
                                                 ([stop stops])
-                                                (values (~a (stop-name stop))
-                                                        (~a (coord->string (stop-lon stop)))
-                                                        (~a (coord->string (stop-lat stop)))))])
+                                                (values (~a (name stop))
+                                                        (~a (format-range (lon-range stop)))
+                                                        (~a (format-range (lat-range stop)))))])
                                   (list names lons lats)))
       ; associate stop structure as data
       (for ([index (in-naturals 0)]
@@ -261,11 +310,11 @@
        (lambda (stop)
          (and (filter-expr-match?
                (format "(?i:~a)" (list-layout-filter-expr list-layout))
-               (stop-name stop))
-              (>= (stop-lon stop) (list-layout-min-lon list-layout))
-              (<= (stop-lon stop) (list-layout-max-lon list-layout))
-              (>= (stop-lat stop) (list-layout-min-lat list-layout))
-              (<= (stop-lat stop) (list-layout-max-lat list-layout))))
+               (name stop))
+              (>= (car (lon-range stop)) (list-layout-min-lon list-layout))
+              (<= (cdr (lon-range stop)) (list-layout-max-lon list-layout))
+              (>= (car (lat-range stop)) (list-layout-min-lat list-layout))
+              (<= (cdr (lat-range stop)) (list-layout-max-lat list-layout))))
        stops))
 
     (define (sort-stops stops sorting-index)
@@ -276,7 +325,7 @@
                             [value2 (accessor stop2)])
                         (if (string? value1)
                             (string<? value1 value2)
-                            (< value1 value2)))))))
+                            (range-< value1 value2)))))))
 
     (define update-timer
       (new timer%
@@ -288,6 +337,7 @@
 
     (define/public (get-selected-stop)
       selected-stop)
-    ))
 
-(provide stop-selector%)
+    (set-selection-message selected-stop)))
+
+(provide compound-stop-selector%)
