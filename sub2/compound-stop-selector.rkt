@@ -38,7 +38,12 @@
 (define compound-stop-selector%
   (class object%
 
-    (init initial-stops parent [selection-id #f] [callback #f] [focus #f])
+    (init initial-stops
+          parent
+          [selection-id #f]
+          [callback #f]
+          [focus #f]
+          [allow-compounds #t])
 
     (super-new)
 
@@ -105,19 +110,22 @@
                                 [parent panel]
                                 [stretchable-height #f]))
     
-    (define compound-checkbox (new check-box%
-                                   [label "Compound stops with same name"]
-                                   [parent compound-panel]
-                                   [value #f]
-                                   [callback
-                                    (lambda (checkbox event)
-                                      (let ([checked? (send checkbox get-value)])
-                                        (when (not (equal? checked? show-compounds?))
-                                          (set! show-compounds? checked?)
-                                          (if show-compounds?
-                                              (set! stops compound-stops)
-                                              (set! stops initial-stops))
-                                          (populate-list #t))))]))
+    (define compound-checkbox
+      (new check-box%
+           [label "Compound stops with same name"]
+           [parent compound-panel]
+           [value #f]
+           [callback
+            (lambda (checkbox event)
+              (let ([checked? (send checkbox get-value)])
+                (when (not (equal? checked? show-compounds?))
+                  (set! show-compounds? checked?)
+                  (if show-compounds?
+                      (set! stops compound-stops)
+                      (set! stops initial-stops))
+                  (populate-list #t))))]))
+
+    (send compound-checkbox show allow-compounds)
     
     (define data-list
       (let ([data-list
