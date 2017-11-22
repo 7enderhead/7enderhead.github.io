@@ -2,13 +2,11 @@
 
 (require racket/gui/base)
 (require framework)
-(require racket/format)
 (require threading)
 (require "data-provider.rkt")
 (require "data-provider-factory.rkt")
 (require "data-defs.rkt")
-(require "compound-stop-selector.rkt")
-(require "route-display.rkt")
+(require "info-panel.rkt")
 
 ;;; data
 
@@ -23,46 +21,36 @@
          (super-new [label "Route21"]
                     [width 1000]
                     [height 800])
-         (define/augment (on-close)
-           (when (exit:user-oks-exit) (exit:exit))))))
+         #;(define/augment (on-close)
+             (when (exit:user-oks-exit) (exit:exit))))))
 
-(define selection-panel (new horizontal-panel%
-                             [parent main-frame]))
+(define tab-panel
+  (new tab-panel%
+       [parent main-frame]
+       [choices '("Info" "Edit")]
+       [callback
+        (lambda (panel event)
+          (let ([active-tab (if (equal? "Info" (send panel get-item-label (send panel get-selection)))
+                                info-tab
+                                edit-tab)])
+            (send panel change-children (lambda (children)
+                                          (list active-tab)))))]))
 
-(define selector1 (new compound-stop-selector%
-                       [initial-stops stops]
-                       [parent selection-panel]
-                       [selection-id 'stop1]
-                       [callback (lambda (id new-stop)
-                                   (display-routes))]
-                       [focus #t]))
+(define info-tab (new vertical-panel%
+                      [parent tab-panel]))
 
-(define selector2 (new compound-stop-selector%
-                       [initial-stops stops]
-                       [parent selection-panel]
-                       [selection-id 'stop2]
-                       [callback (lambda (id new-stop)
-                                   (display-routes))]
-                       [focus #f]))
+(define info-panel (new info-panel%
+                        [parent info-tab]
+                        [provider provider]
+                        [stops stops]))
 
-(define route-display (new route-display%
-                           [parent main-frame]))
+(define edit-tab (new vertical-panel%
+                      [parent tab-panel]))
 
-(define (display-routes)
-  (let ([compound-stop1 (send selector1 get-selected-stop)]
-        [compound-stop2 (send selector2 get-selected-stop)])
-    (when (and compound-stop1 compound-stop2)
-      (let* ([stops1 (constituents compound-stop1)]
-             [stops2 (constituents compound-stop2)]
-             [routes (~> (for*/list ([stop1 stops1]
-                                     [stop2 stops2])
-                           (let* ([routes1 (send provider routes-for-stop (stop-id stop1))]
-                                  [routes2 (send provider routes-for-stop (stop-id stop2))]
-                                  [common-routes (set-intersect routes1 routes2)])
-                             common-routes))
-                         flatten
-                         list->set)])
-        (send route-display show-routes routes)
-        ))))
-  
+(send tab-panel delete-child edit-tab)
+
+(define test-message (new message%
+                          [label "Edit"]
+                          [parent edit-tab]))
+
 (send main-frame show #t)
