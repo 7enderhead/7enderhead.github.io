@@ -23,11 +23,24 @@
          (super-new [label "Route21"]
                     [width 1000]
                     [height 800])
-         (define/augment (on-close)
+         #;(define/augment (on-close)
            (when (exit:user-oks-exit) (exit:exit))))))
 
+(define tab-panel (new tab-panel%
+                       [parent main-frame]
+                       [choices '("Info" "Edit")]
+                       [callback
+                        (lambda (panel event)
+                          (let ([show-info? (if (equal? 0 (send panel get-selection)) #t #f)])
+                            (send info-panel show show-info?)
+                            (send edit-panel show (not show-info?)))
+                          )]))
+
+(define info-panel (new vertical-panel%
+                        [parent tab-panel]))
+
 (define selection-panel (new horizontal-panel%
-                             [parent main-frame]))
+                             [parent info-panel]))
 
 (define selector1 (new compound-stop-selector%
                        [initial-stops stops]
@@ -46,7 +59,7 @@
                        [focus #f]))
 
 (define route-display (new route-display%
-                           [parent main-frame]))
+                           [parent info-panel]))
 
 (define (display-routes)
   (let ([compound-stop1 (send selector1 get-selected-stop)]
@@ -64,5 +77,14 @@
                          list->set)])
         (send route-display show-routes routes)
         ))))
-  
+
+(define edit-panel (new vertical-panel%
+                        [parent tab-panel]))
+
+(define test-message (new message%
+                          [label "Edit"]
+                          [parent edit-panel]))
+
+(send edit-panel show #f)
+
 (send main-frame show #t)
