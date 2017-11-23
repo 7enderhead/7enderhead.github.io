@@ -60,6 +60,15 @@
     (hash-set! all (stop-id stop) stop)
     all))
 
+(define (stop-value-lists stops)
+  (let-values ([(names lons lats)
+                (for/lists (names lons lats)
+                  ([stop stops])
+                  (values (~a (name stop))
+                          (~a (format-range (lon-range stop)))
+                          (~a (format-range (lat-range stop)))))])
+    (list names lons lats)))
+
 ;;; Compound Stop
 
 (struct compound-stop (stops)

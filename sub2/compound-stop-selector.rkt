@@ -271,13 +271,7 @@
               #f))
     
     (define (set-data stops)
-      (send/apply data-list set (let-values ([(names lons lats)
-                                              (for/lists (names lons lats)
-                                                ([stop stops])
-                                                (values (~a (name stop))
-                                                        (~a (format-range (lon-range stop)))
-                                                        (~a (format-range (lat-range stop)))))])
-                                  (list names lons lats)))
+      (send/apply data-list set (stop-value-lists stops))
       ; associate stop structure as data
       (for ([index (in-naturals 0)]
             [stop stops])
