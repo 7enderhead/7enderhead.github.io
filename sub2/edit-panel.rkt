@@ -2,6 +2,7 @@
 
 (require racket/gui/base)
 (require sugar/coerce)
+(require anaphoric)
 (require "data-defs.rkt")
 (require "util.rkt")
 (require "compound-stop-selector.rkt")
@@ -73,7 +74,10 @@
     (define remove-button (new button%
                                [label "<- Remove Stop"]
                                [parent button-panel]
-                               [stretchable-width #t]))
+                               [stretchable-width #t]
+                               [callback
+                                (lambda (button event)
+                                  (send stop-list remove-selected-stop))]))
 
     (define stop-list
       (new
@@ -86,16 +90,29 @@
                     [style '(single column-headers)]
                     [meta-data (mutable-set)])
 
+         (define (populate)
+           (let ([meta-data (send this get-meta-data)])
+             (send/apply this set (stop-value-lists (->list meta-data)))))
+
+         (define (selected-stop)
+           (if-let [selected-index (send this get-selection)]
+                   (send this get-data selected-index)
+                   #f))
+         
          (define/public (add-stop stop)
            (let ([meta-data (send this get-meta-data)])
              (unless (set-member? meta-data stop)
                (set-add! meta-data stop)
                (populate))))
 
-         (define (populate)
-           (let ([meta-data (send this get-meta-data)])
-             (send/apply this set (stop-value-lists (->list meta-data)))))
-         
+         (define/public (remove-selected-stop)
+           (displayln "remove-selected")
+           (when-let [selected-stop (send this selected-stop)]
+                     (displayln selected-stop)
+                     (displayln (send this get-meta-data))
+                     (set-remove! (send this get-meta-data) selected-stop)
+                     (displayln (send this get-meta-data))
+                     (populate)))
          )))
     ))
 
