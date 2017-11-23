@@ -6,6 +6,7 @@
   ()
   (stops
    stops-by-id
+   routes
    routes-for-stop))
 
 (provide data-provider<%>)

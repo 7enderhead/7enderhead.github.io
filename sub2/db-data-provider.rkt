@@ -21,10 +21,10 @@
                                   #:password password
                                   #:database database)))))
 
-    (define all-stops #f) ; cached stops, since they never change
+    (define all-stops #f)
 
     (define/public (stops)
-      (when (not all-stops)
+      (unless all-stops
         (set! all-stops
               (for/list ([row (query-rows connection "select * from stop")])
                 (apply stop (vector->list row)))))
@@ -36,6 +36,15 @@
       (when (not all-stops-by-id)
         (set! all-stops-by-id (group-stops-by-id all-stops)))
       all-stops-by-id)
+
+    (define all-routes #f)
+
+    (define/public (routes)
+      (unless all-routes
+        (set! all-routes
+              (for/list ([row (query-rows connection "select * from route")])
+                (apply route (vector->list row)))))
+      all-routes)
     
     (define/public (routes-for-stop stop-id)
       (let* ([statement (virtual-statement
@@ -43,9 +52,9 @@
              [route-ids (for/list ([mapping (query-rows connection statement)])
                           (match-let ([(vector route-id _) mapping])
                             route-id))])
-        (apply routes route-ids)))
+        (apply routes-for-ids route-ids)))
 
-    (define (routes . ids)
+    (define (routes-for-ids . ids)
       (if (empty? ids)
           '()
           (let* ([id-list (string-join (map ~a ids) ",")]

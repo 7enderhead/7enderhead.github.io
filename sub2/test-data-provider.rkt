@@ -18,6 +18,15 @@
               (+ index (* 10 index))
               (format "Stop_~a" index)
               (format "Alt_Stop_~a" index))))
+
+    (define all-routes
+      (for/list ([index (range 1 10)])
+        (route index
+               "Bus"
+               (->string index)
+               (format "Start_~a" index)
+               (format "End_~a" index)
+               )))
     
     (define/public (stops)
       all-stops)
@@ -25,6 +34,9 @@
     (define/public (stops-by-id)
       (group-stops-by-id all-stops))
 
+    (define/public (routes)
+      all-routes)
+    
     (define/public (routes-for-stop stop-id)
       '())
       
