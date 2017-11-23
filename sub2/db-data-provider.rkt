@@ -34,12 +34,7 @@
     
     (define/public (stops-by-id)
       (when (not all-stops-by-id)
-        (set! all-stops-by-id
-              (for/fold
-                    ([all (make-hash)])
-                    ([stop (stops)])
-                     (hash-set! all (stop-id stop) stop)
-                     all)))
+        (set! all-stops-by-id (group-stops-by-id all-stops)))
       all-stops-by-id)
     
     (define/public (routes-for-stop stop-id)

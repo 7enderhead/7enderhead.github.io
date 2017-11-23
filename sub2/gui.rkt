@@ -7,6 +7,7 @@
 (require "data-provider-factory.rkt")
 (require "data-defs.rkt")
 (require "info-panel.rkt")
+(require "edit-panel.rkt")
 
 ;;; data
 
@@ -21,8 +22,8 @@
          (super-new [label "Route21"]
                     [width 1000]
                     [height 800])
-         #;(define/augment (on-close)
-             (when (exit:user-oks-exit) (exit:exit))))))
+         (define/augment (on-close)
+           (when (exit:user-oks-exit) (exit:exit))))))
 
 (define tab-panel
   (new tab-panel%
@@ -41,16 +42,15 @@
 
 (define info-panel (new info-panel%
                         [parent info-tab]
-                        [provider provider]
-                        [stops stops]))
+                        [provider provider]))
 
 (define edit-tab (new vertical-panel%
                       [parent tab-panel]))
 
-(send tab-panel delete-child edit-tab)
+(define edit-panel (new edit-panel%
+                      [parent edit-tab]
+                      [provider provider]))
 
-(define test-message (new message%
-                          [label "Edit"]
-                          [parent edit-tab]))
+(send tab-panel delete-child edit-tab)
 
 (send main-frame show #t)

@@ -1,6 +1,7 @@
 #lang racket
 
 (require setup/getinfo)
+(require racket/gui/base)
 
 (define info (get-info/full "."))
 
@@ -14,5 +15,17 @@
 (define (filter-expr-match? expr string)
   (with-handlers ([(lambda (e) #t) (lambda (e) #t)])
     (regexp-match? expr string)))
+
+(define larger-font (make-object font%
+                      (+ 1 (send normal-control-font get-size))
+                      (send normal-control-font get-family)
+                      'normal
+                      'bold))
+
+(define large-font (make-object font%
+                     (+ 2 (send normal-control-font get-size))
+                     (send normal-control-font get-family)
+                     'normal
+                     'bold))
 
 (provide (all-defined-out))

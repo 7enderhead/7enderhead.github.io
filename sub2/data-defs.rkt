@@ -53,6 +53,13 @@
 (define (min-lat stops) (process-filter stops min stop-lat default-min))
 (define (max-lat stops) (process-filter stops max stop-lat default-max))
 
+(define (group-stops-by-id stops)
+  (for/fold
+   ([all (make-hash)])
+   ([stop (stops)])
+    (hash-set! all (stop-id stop) stop)
+    all))
+
 ;;; Compound Stop
 
 (struct compound-stop (stops)
