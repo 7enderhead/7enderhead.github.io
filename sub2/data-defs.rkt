@@ -127,7 +127,7 @@
 
 ;;; Route
 
-(struct route (id type number start end)
+(struct route (id number type start end)
   #:transparent
   #:methods gen:custom-write
   [(define write-proc

@@ -39,6 +39,12 @@
     
     (define/public (routes-for-stop stop-id)
       '())
+
+    (define/public (route-exists? route)
+      #f)
+
+    (define/public (insert-route new-route stops)
+      #f)
       
     ))
 

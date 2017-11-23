@@ -7,6 +7,8 @@
   (stops
    stops-by-id
    routes
-   routes-for-stop))
+   routes-for-stop
+   route-exists?
+   insert-route))
 
 (provide data-provider<%>)

@@ -109,7 +109,6 @@
                (populate))))
 
          (define/public (remove-selected-stop)
-           (displayln "remove-selected")
            (when-let [selected-stop (selected-stop)]
                      (set-remove! (send this get-meta-data) selected-stop)
                      (populate)))
@@ -120,7 +119,7 @@
             [type (->string (send type-choice get-item-label (send type-choice get-selection)))]
             [start (->string (send start-field get-value))]
             [end (->string (send end-field get-value))])
-        (route 0 type number start end)))
+        (route 0 number type start end)))
     
     (define new-route-button
       (new button%
@@ -128,15 +127,8 @@
            [label "Create new route"]
            [callback
             (lambda (button event)
-              (let* ([new-route (route-from-controls)]
-                     [exists? (findf (lambda (route)
-                                       (and
-                                        (equal? (route-type new-route) (route-type route))
-                                        (equal? (route-number new-route) (route-number route))
-                                        (equal? (route-start new-route) (route-start route))
-                                        (equal? (route-end new-route) (route-end route))))
-                                     (send provider routes))])
-                (send status-message show exists?)))]))
+              (let* ([new-route (route-from-controls)])
+                (send status-message show (send provider route-exists? new-route))))]))
 
     (define status-message
       (new message%
