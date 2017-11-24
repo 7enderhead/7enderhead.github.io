@@ -112,6 +112,10 @@
            (when-let [selected-stop (selected-stop)]
                      (set-remove! (send this get-meta-data) selected-stop)
                      (populate)))
+
+         (define/public (get-all-ids)
+           (set-map (send this get-meta-data)
+                    (lambda (stop) (stop-id stop))))
          )))
 
     (define (route-from-controls)
@@ -127,8 +131,14 @@
            [label "Create new route"]
            [callback
             (lambda (button event)
-              (let* ([new-route (route-from-controls)])
-                (send status-message show (send provider route-exists? new-route))))]))
+              (let* ([new-route (route-from-controls)]
+                     [exists? (send provider route-exists? new-route)])
+                (send status-message show exists?)
+                (unless exists?
+                  (send provider
+                        insert-route
+                        new-route
+                        (send stop-list get-all-ids)))))]))
 
     (define status-message
       (new message%
