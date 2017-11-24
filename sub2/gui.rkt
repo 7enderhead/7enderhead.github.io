@@ -38,14 +38,16 @@
                                           (list active-tab)))))]))
 
 (define info-tab (new vertical-panel%
-                      [parent tab-panel]))
+                      [parent tab-panel]
+                      [border 10]))
 
 (define info-panel (new info-panel%
                         [parent info-tab]
                         [provider provider]))
 
 (define edit-tab (new vertical-panel%
-                      [parent tab-panel]))
+                      [parent tab-panel]
+                      [border 10]))
 
 (define edit-panel (new edit-panel%
                       [parent edit-tab]

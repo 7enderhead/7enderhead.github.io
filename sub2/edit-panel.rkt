@@ -58,7 +58,8 @@
 
     (define button-panel (new vertical-panel%
                               [parent stop-panel]
-                              [alignment '(center center)]))
+                              [alignment '(center center)]
+                              ))
     
     (define add-button
       (new button%
@@ -83,18 +84,23 @@
       (new
        (class data-list-box%
 
-         (super-new [label "Stops for new Route"]
+         (super-new [label ""]
                     [parent stop-panel]
                     [choices '()]
                     [columns '("Name" "Longitude" "Latitude")]
                     [style '(single column-headers)]
                     [meta-data (mutable-set)])
 
+         (send this set-column-widths '(200 200 400) 100 100)
+         
          (define (populate)
-           (let ([meta-data (->list (send this get-meta-data))])
-             (send/apply this set (stop-value-lists meta-data))
+           (let* ([stops (->list (send this get-meta-data))]
+                  [sorted-stops (sort stops
+                                      (lambda (stop1 stop2)
+                                        (string<? (stop-name stop1) (stop-name stop2))))])
+             (send/apply this set (stop-value-lists sorted-stops))
              (for ([index (in-naturals 0)]
-                   [stop meta-data])
+                   [stop sorted-stops])
                (send this set-data index stop))))
 
          (define (selected-stop)
