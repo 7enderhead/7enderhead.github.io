@@ -73,20 +73,37 @@
                 (equal? (route-end existent) (route-end route))))
              (send this routes)))
     
-    (define/public (insert-route route stops)
+    (define/public (insert-route route [stop-ids null])
       (unless (route-exists? route)
         (let ([insert-statement
-               (format
+               (format-route-data
                 "insert into route(number,type,start,end) values('~a','~a','~a','~a')"
-                (route-number route) (route-type route) (route-start route) (route-end route))])
+                route)])
           (query-exec connection insert-statement)
           (set! all-routes #f))
-        (let* ([statement
-                (format
-                 "select id from route where number='~a' and type='~a' and start='~a' and end='~a'"
-                 (route-number route) (route-type route) (route-start route) (route-end route))]
-               [new-route-id (query-value connection statement)])
-          new-route-id)))
+        (insert-route-stops route stop-ids)))
+
+    (define (format-route-data format-string route)
+      (format format-string
+              (route-number route)
+              (route-type route)
+              (route-start route)
+              (route-end route)))
+    
+    (define/public (insert-route-stops route stop-ids)
+      (let* ([id-statement
+              (format-route-data
+               "select id from route where number='~a' and type='~a' and start='~a' and end='~a'"
+               route)]
+             [new-route-id (query-value connection id-statement)]
+             [id-pairs (string-join (for*/list 
+                                        ([route-id (list new-route-id)]
+                                         [stop-id stop-ids])
+                                      (format "(~a, ~a)" route-id stop-id))
+                                    ",")]
+             [insert-statement
+              (format "insert into mapping(route_id,stop_id) values ~a" id-pairs)])
+        (query-exec connection insert-statement)))
     
     ))
 
