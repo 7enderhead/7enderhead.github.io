@@ -8,9 +8,12 @@
 (require "util.rkt")
 (require "compound-stop-selector.rkt")
 (require "data-list-box.rkt")
+(require "info-message.rkt")
 
 (define info (get-info/full "."))
 (define route-min-stops (info 'route-min-stops))
+
+(define horiz-margin 10)
 
 (define edit-panel%
   (class object%
@@ -23,19 +26,14 @@
                        [parent parent]
                        [alignment '(left top)]))
 
-    (define data-label (new message%
-                            [parent panel]
-                            [label "Data for new Route"]
-                            [font large-font]
-                            [vert-margin 5]))
-    
     (define data-panel
-      (new vertical-panel%
+      (new group-box-panel%
            [parent panel]
+           [label "Data for New Route"]
+           [font large-font]
            [alignment '(left top)]
-           [horiz-margin 10]
+           [horiz-margin horiz-margin]
            [border 10]
-           [style '(border)]
            [spacing 10]
            [stretchable-height #f]))
 
@@ -51,14 +49,14 @@
            [label "Number: "]
            [stretchable-width #f]
            [min-width 100]
-           [callback (lambda (control event) (check-data))]))
+           [callback (lambda (control event) (data-ok?))]))
     
     (define type-choice
       (new radio-box%
            [label "Type: "]
            [parent number-type-panel]
            [choices '("Bus" "Tram")]
-           [callback (lambda (control event) (check-data))]))
+           [callback (lambda (control event) (data-ok?))]))
 
     (define start-end-panel
       (new horizontal-panel%
@@ -69,45 +67,46 @@
       (new text-field%
            [parent start-end-panel]
            [label "Start: "]
-           [callback (lambda (control event) (check-data))]))
+           [callback (lambda (control event) (data-ok?))]))
 
     (define end-field
       (new text-field%
            [parent start-end-panel]
            [label "End: "]
-           [callback (lambda (control event) (check-data))]))
+           [callback (lambda (control event) (data-ok?))]))
 
-    (define exists-message
-      (new message%
+    (define data-message
+      (new info-message%
            [parent data-panel]
-           [label "Route with this data already exists"]
-           [font info-font]
-           [horiz-margin 10]))
-
-    (send exists-message show #f)
-
-    (define (route-exists?)
-      (let* ([new-route (route-from-controls)]
-             [exists? (send provider route-exists? new-route)])
-        exists?))
-
-    (define stops-label (new message%
-                             [parent panel]
-                             [label "Stops for new Route"]
-                             [font large-font]
-                             [vert-margin 5]))
+           [label "Please enter data for Number, Start and End."]))
     
-    (define stop-panel (new horizontal-panel%
-                            [parent panel]
-                            [alignment '(left top)]))
+    (define exists-message
+      (new info-message%
+           [parent data-panel]
+           [label "Route with this data already exists."]))
 
+    (define stop-panel
+      (new group-box-panel%
+           [parent panel]
+           [label "Stops for New Route"]
+           [font large-font]
+           [alignment '(left top)]
+           [horiz-margin horiz-margin]
+           [vert-margin 30]
+           [border 10]
+           [spacing 10]))
+
+    (define inner-stop-panel
+      (new horizontal-panel%
+           [parent stop-panel]))
+    
     (define stop-selector (new compound-stop-selector%
-                               [parent stop-panel]
+                               [parent inner-stop-panel]
                                [initial-stops (send provider stops)]
                                [allow-compounds #f]))
 
     (define button-panel (new vertical-panel%
-                              [parent stop-panel]
+                              [parent inner-stop-panel]
                               [alignment '(center center)]))
     
     (define add-button
@@ -136,7 +135,7 @@
          (init [data-change-callback #f])
          
          (super-new [label ""]
-                    [parent stop-panel]
+                    [parent inner-stop-panel]
                     [choices '()]
                     [columns '("Name" "Longitude" "Latitude")]
                     [style '(single column-headers)]
@@ -179,28 +178,39 @@
            (set-map (send this get-meta-data)
                     (lambda (stop) (stop-id stop))))
          )
-       [data-change-callback (lambda () (check-data))]
+       [data-change-callback (lambda () (data-ok?))]
        ))
 
     (define stop-number-message
-      (new message%
-           [parent panel]
+      (new info-message%
+           [parent stop-panel]
            [label (format "Please select at least ~a stops."
-                          route-min-stops)]
-           [font info-font]
-           [horiz-margin 10]))
+                          route-min-stops)]))
 
+    (define (route-data-ok?)
+      (and (non-empty-string? (send number-field get-value))
+           (non-empty-string? (send start-field get-value))
+           (non-empty-string? (send end-field get-value))))
+    
+    (define (route-exists?)
+      (let* ([new-route (route-from-controls)]
+             [exists? (send provider route-exists? new-route)])
+        exists?))
+    
     (define (stop-number-ok?)
       (>=
        (set-count (send stop-list get-meta-data))
        route-min-stops))
 
-    (define (check-data)
-      (let ([exists? (route-exists?)]
+    (define (data-ok?)
+      (let ([data-ok? (route-data-ok?)]
+            [exists? (route-exists?)]
             [stop-number-ok? (stop-number-ok?)])
+        (send data-message show (not data-ok?))
         (send exists-message show exists?)
         (send stop-number-message show (not stop-number-ok?))
-        (send new-route-button enable (and (not exists?) stop-number-ok?))))
+        (send new-route-button enable (and (not exists?) stop-number-ok?))
+        (and data-ok? (not exists?) stop-number-ok?)))
 
     (define (route-from-controls)
       (let ([number (->string (send number-field get-value))]
@@ -212,17 +222,20 @@
     (define new-route-button
       (new button%
            [parent panel]
-           [label "Create new route"]
+           [label "Create New Route"]
+           [font large-font]
+           [horiz-margin horiz-margin]
+           [vert-margin 20]
+           [stretchable-width #t]
            [callback
             (lambda (button event)
-              (when (and (not (route-exists?))
-                         (stop-number-ok?))
+              (when (data-ok?)
                 (send provider
                       insert-route
                       (route-from-controls)
                       (send stop-list get-all-ids))))]))
 
-    (check-data)
+    (data-ok?) ; initial call
     
     ))
 

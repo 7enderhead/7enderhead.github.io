@@ -2,6 +2,7 @@
 
 (require setup/getinfo)
 (require racket/gui/base)
+(require images/icons/misc)
 
 (define info (get-info/full "."))
 
@@ -32,5 +33,9 @@
                       (+ 1 (send normal-control-font get-size))
                       (send normal-control-font get-family)
                       'italic))
+
+(define hint-icon (regular-polygon-icon 3
+                                        #:color "cornflowerblue"
+                                        #:height 30))
 
 (provide (all-defined-out))
