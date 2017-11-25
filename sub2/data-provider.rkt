@@ -9,6 +9,7 @@
    routes
    routes-for-stop
    route-exists?
-   insert-route))
+   insert-route
+   add-callback))
 
 (provide data-provider<%>)

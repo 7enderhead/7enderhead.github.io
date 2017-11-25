@@ -45,6 +45,9 @@
 
     (define/public (insert-route new-route stops)
       #f)
+
+    (define/public (add-callback callback)
+      (void))
       
     ))
 

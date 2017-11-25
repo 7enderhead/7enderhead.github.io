@@ -3,13 +3,16 @@
 (require db)
 (require setup/getinfo)
 (require racket/format)
+(require threading)
+(require sugar/coerce)
+(require racket/gui/base) ; for timer%
 (require "data-provider.rkt")
 (require "data-defs.rkt")
 
 (define db-data-provider%
   (class* object% (data-provider<%>)
 
-    (init server user password database)
+    (init server user password database poll-millisecs)
 
     (super-new)
 
@@ -39,6 +42,9 @@
 
     (define all-routes #f)
 
+    (define (reset-routes)
+      (set! all-routes #f))
+    
     (define/public (routes)
       (unless all-routes
         (set! all-routes
@@ -82,7 +88,7 @@
                 "insert into route(number,type,start,end) values('~a','~a','~a','~a')"
                 route)])
           (query-exec connection insert-statement)
-          (set! all-routes #f))
+          (reset-routes))
         (insert-route-stops route stop-ids)))
 
     (define (format-route-data format-string route)
@@ -106,6 +112,35 @@
              [insert-statement
               (format "insert into mapping(route_id,stop_id) values ~a" id-pairs)])
         (query-exec connection insert-statement)))
+
+    ;;; monitoring of 'route' table
+    
+    (define (query-checksum)
+      (~> (query-row connection "checksum table route")
+          (vector-ref 1)
+          (->int)))
+
+    (define checksum (query-checksum))
+    
+    (define timer
+      (new timer%
+           [interval poll-millisecs]
+           [notify-callback
+            (lambda ()
+              (let ([new-checksum (query-checksum)])
+                (unless (equal? new-checksum checksum)
+                  (set! checksum new-checksum)
+                  (reset-routes)
+                  (invoke-callbacks))))]))
+
+    (define callbacks (mutable-set))
+
+    (define/public (add-callback callback)
+      (set-add! callbacks callback))
+
+    (define (invoke-callbacks)
+      (set-for-each callbacks
+                    (lambda (callback) (callback))))
     
     ))
 
