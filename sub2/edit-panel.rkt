@@ -32,32 +32,33 @@
     (define data-label (new message%
                             [parent data-panel]
                             [label "Data for new Route"]
-                            [font larger-font]))
+                            [font large-font]
+                            [vert-margin 5]))
 
     (define number-field
       (new text-field%
            [parent data-panel]
            [label "Number"]
-           [callback (lambda (control event) (check-existence))]))
+           [callback (lambda (control event) (check-data))]))
     
     (define type-choice
       (new radio-box%
            [label "Type"]
            [parent data-panel]
            [choices '("Bus" "Tram")]
-           [callback (lambda (control event) (check-existence))]))
+           [callback (lambda (control event) (check-data))]))
 
     (define start-field
       (new text-field%
            [parent data-panel]
            [label "Start"]
-           [callback (lambda (control event) (check-existence))]))
+           [callback (lambda (control event) (check-data))]))
 
     (define end-field
       (new text-field%
            [parent data-panel]
            [label "End"]
-           [callback (lambda (control event) (check-existence))]))
+           [callback (lambda (control event) (check-data))]))
 
     (define exists-message
       (new message%
@@ -72,10 +73,13 @@
       (let* ([new-route (route-from-controls)]
              [exists? (send provider route-exists? new-route)])
         exists?))
-    
-    (define (check-existence)
-      (send exists-message show (route-exists?)))
 
+    (define stops-label (new message%
+                             [parent panel]
+                             [label "Stops for new Route"]
+                             [font large-font]
+                             [vert-margin 5]))
+    
     (define stop-panel (new horizontal-panel%
                             [parent panel]
                             [alignment '(left top)]))
@@ -158,7 +162,7 @@
            (set-map (send this get-meta-data)
                     (lambda (stop) (stop-id stop))))
          )
-       [data-change-callback (lambda () (check-stop-number))]
+       [data-change-callback (lambda () (check-data))]
        ))
 
     (define stop-number-message
@@ -170,15 +174,17 @@
            [horiz-margin 10]))
 
     (define (stop-number-ok?)
-      (let ([ok? (>=
-                  (set-count (send stop-list get-meta-data))
-                  route-min-stops)])
-        (printf "stop-number-ok? (>= ~a ~a) ~a" (set-count (send stop-list get-meta-data)) route-min-stops ok?)
-        ok?))
+      (>=
+       (set-count (send stop-list get-meta-data))
+       route-min-stops))
 
-    (define (check-stop-number)
-      (println "check-stop-number")
-      (send stop-number-message show (not (stop-number-ok?))))
+    (define (check-data)
+      (let ([exists? (route-exists?)]
+            [stop-number-ok? (stop-number-ok?)])
+        (printf "check-data: exists? ~a, number-ok? ~a" exists? stop-number-ok?)
+        (send exists-message show exists?)
+        (send stop-number-message show (not stop-number-ok?))
+        (send new-route-button enable (and (not exists?) stop-number-ok?))))
 
     (define (route-from-controls)
       (let ([number (->string (send number-field get-value))]
@@ -193,15 +199,14 @@
            [label "Create new route"]
            [callback
             (lambda (button event)
-              (unless (route-exists?)
+              (when (and (not (route-exists?))
+                         (stop-number-ok?))
                 (send provider
                       insert-route
                       (route-from-controls)
                       (send stop-list get-all-ids))))]))
 
-    
-    
-    
+    (check-data)
     
     ))
 

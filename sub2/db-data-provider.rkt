@@ -65,13 +65,15 @@
               (apply route (vector->list route-datum))))))
 
     (define/public (route-exists? route)
-      (findf (lambda (existent)
-               (and
-                (equal? (route-type existent) (route-type route))
-                (equal? (route-number existent) (route-number route))
-                (equal? (route-start existent) (route-start route))
-                (equal? (route-end existent) (route-end route))))
-             (send this routes)))
+      (if (findf (lambda (existent)
+                   (and
+                    (equal? (route-type existent) (route-type route))
+                    (equal? (route-number existent) (route-number route))
+                    (equal? (route-start existent) (route-start route))
+                    (equal? (route-end existent) (route-end route))))
+                 (send this routes))
+          #t
+          #f))
     
     (define/public (insert-route route [stop-ids null])
       (unless (route-exists? route)
