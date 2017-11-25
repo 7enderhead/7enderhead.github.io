@@ -1,6 +1,8 @@
 #lang racket
 
 (require setup/getinfo)
+(require racket/gui/base)
+(require images/icons/misc)
 
 (define info (get-info/full "."))
 
@@ -14,5 +16,26 @@
 (define (filter-expr-match? expr string)
   (with-handlers ([(lambda (e) #t) (lambda (e) #t)])
     (regexp-match? expr string)))
+
+(define larger-font (make-object font%
+                      (+ 1 (send normal-control-font get-size))
+                      (send normal-control-font get-family)
+                      'normal
+                      'bold))
+
+(define large-font (make-object font%
+                     (+ 2 (send normal-control-font get-size))
+                     (send normal-control-font get-family)
+                     'normal
+                     'bold))
+
+(define info-font (make-object font%
+                      (+ 1 (send normal-control-font get-size))
+                      (send normal-control-font get-family)
+                      'italic))
+
+(define hint-icon (regular-polygon-icon 3
+                                        #:color "cornflowerblue"
+                                        #:height 30))
 
 (provide (all-defined-out))

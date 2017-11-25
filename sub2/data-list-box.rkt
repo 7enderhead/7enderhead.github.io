@@ -8,17 +8,11 @@
     (init label
           parent
           choices
-          [columns '("Column")]
-          [style '(single)]
-          [callback (lambda (control event) (void))]
           [meta-data #f])
 
     (super-new [label label]
                [parent parent]
-               [choices choices]
-               [columns columns]
-               [style style]
-               [callback callback])
+               [choices choices])
 
     (define the-meta-data meta-data)
 

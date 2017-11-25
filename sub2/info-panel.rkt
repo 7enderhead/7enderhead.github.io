@@ -9,9 +9,11 @@
 (define info-panel%
   (class object%
 
-    (init parent provider stops)
+    (init parent provider)
 
     (super-new)
+
+    (define stops (send provider stops))
 
     (define panel (new vertical-panel%
                        [parent parent]))

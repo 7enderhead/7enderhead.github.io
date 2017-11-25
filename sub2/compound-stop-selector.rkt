@@ -72,48 +72,27 @@
     
     (define panel (new vertical-panel%
                        [parent parent]
-                       [border 10]))
-
-    (define selection-panel (new horizontal-panel%
-                                 [parent panel]
-                                 [stretchable-width #t]
-                                 [stretchable-height #f]))
+                       [horiz-margin 10]
+                       [alignment '(left top)]))
 
     (define selection-message
       (new message%
            [label ""]
-           [parent selection-panel]
-           [font (make-object font%
-                   (+ 2 (send normal-control-font get-size))
-                   (send normal-control-font get-family)
-                   'normal
-                   'bold)]
+           [parent panel]
+           [font large-font]
            [stretchable-width #t]))
 
-    (define coordinates-panel (new horizontal-panel%
-                                   [parent panel]
-                                   [stretchable-width #t]
-                                   [stretchable-height #f]))
-    
     (define coordinates-message
       (new message%
            [label ""]
-           [parent coordinates-panel]
-           [font (make-object font%
-                   (+ 1 (send normal-control-font get-size))
-                   (send normal-control-font get-family)
-                   'normal
-                   'bold)]
+           [parent panel]
+           [font larger-font]
            [stretchable-width #t]))
 
-    (define compound-panel (new horizontal-panel%
-                                [parent panel]
-                                [stretchable-height #f]))
-    
     (define compound-checkbox
       (new check-box%
            [label "Compound stops with same name"]
-           [parent compound-panel]
+           [parent panel]
            [value #f]
            [callback
             (lambda (checkbox event)
@@ -152,8 +131,7 @@
 
     (define filter-panel (new horizontal-panel%
                               [parent panel]
-                              [stretchable-height #f]
-                              [border 10]))
+                              [stretchable-height #f]))
 
     (define filter-checkbox (new check-box%
                                  [label "Name filter"]
@@ -167,11 +145,11 @@
     (define lon-panel (new vertical-panel%
                            [parent panel]
                            [stretchable-height #f]
-                           [border 10]))
+                           [alignment '(left top)]))
     
     (define lon-checkbox (new check-box%
                               [label "Longitude filter"]
-                              [parent (new horizontal-panel% [parent lon-panel])]))
+                              [parent lon-panel]))
            
     (define min-lon-slider
       (new slider%
@@ -206,11 +184,11 @@
     (define lat-panel (new vertical-panel%
                            [parent panel]
                            [stretchable-height #f]
-                           [border 10]))
+                           [alignment '(left top)]))
 
     (define lat-checkbox (new check-box%
                               [label "Latitude filter"]
-                              [parent (new horizontal-panel% [parent lat-panel])]))
+                              [parent lat-panel]))
 
     (define min-lat-slider
       (new slider%
@@ -293,13 +271,7 @@
               #f))
     
     (define (set-data stops)
-      (send/apply data-list set (let-values ([(names lons lats)
-                                              (for/lists (names lons lats)
-                                                ([stop stops])
-                                                (values (~a (name stop))
-                                                        (~a (format-range (lon-range stop)))
-                                                        (~a (format-range (lat-range stop)))))])
-                                  (list names lons lats)))
+      (send/apply data-list set (stop-value-lists stops))
       ; associate stop structure as data
       (for ([index (in-naturals 0)]
             [stop stops])

@@ -5,6 +5,10 @@
 (define-interface data-provider<%>
   ()
   (stops
-   routes-for-stop))
+   stops-by-id
+   routes
+   routes-for-stop
+   route-exists?
+   insert-route))
 
 (provide data-provider<%>)

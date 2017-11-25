@@ -4,3 +4,4 @@
 (define db-password "MySql123")
 (define db-name "map")
 (define coord-string-length 10)
+(define route-min-stops 2)

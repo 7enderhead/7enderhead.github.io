@@ -53,6 +53,22 @@
 (define (min-lat stops) (process-filter stops min stop-lat default-min))
 (define (max-lat stops) (process-filter stops max stop-lat default-max))
 
+(define (group-stops-by-id stops)
+  (for/fold
+   ([all (make-hash)])
+   ([stop (stops)])
+    (hash-set! all (stop-id stop) stop)
+    all))
+
+(define (stop-value-lists stops)
+  (let-values ([(names lons lats)
+                (for/lists (names lons lats)
+                  ([stop stops])
+                  (values (~a (name stop))
+                          (~a (format-range (lon-range stop)))
+                          (~a (format-range (lat-range stop)))))])
+    (list names lons lats)))
+
 ;;; Compound Stop
 
 (struct compound-stop (stops)
@@ -111,7 +127,7 @@
 
 ;;; Route
 
-(struct route (id type number start end)
+(struct route (id number type start end)
   #:transparent
   #:methods gen:custom-write
   [(define write-proc

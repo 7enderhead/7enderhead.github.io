@@ -10,7 +10,7 @@ CREATE DATABASE IF NOT EXISTS $DB \
 USE $DB; \
 DROP TABLE IF EXISTS $TABLE; \
 CREATE TABLE $TABLE ( \
-  id BIGINT NOT NULL PRIMARY KEY, \
+  id BIGINT NOT NULL AUTO_INCREMENT PRIMARY KEY, \
   number VARCHAR(10), \
   type VARCHAR(10), \
   start VARCHAR(255), \
@@ -19,7 +19,7 @@ CREATE TABLE $TABLE ( \
 FIFO_BASE=`mktemp` && FIFO=$FIFO_BASE.fifo && # setup named pipe used for MySql LOAD DATA input instead of file
 mkfifo $FIFO && ( \
 awk -F", |: | => " -v OFS="," 'FNR > 1 {print $1, $2, $3, $4}' routes.csv | # ignoring the first header line, split into id, combined type/number, start and end
-awk -F"," -v OFS="," '{split($2, a, " "); print $1, a[1] "," a[2], $3, $4}' > $FIFO & # split the combined type/number field and redirect results into named pipe and wait in background for data consumption
+awk -F"," -v OFS="," '{split($2, a, " "); print $1, a[2] "," a[1], $3, $4}' > $FIFO & # split the combined type/number field and redirect results into named pipe and wait in background for data consumption
 mysql -h $SERVER -u $USER -p$PASSWORD --local-infile -e " \
 LOAD DATA LOCAL INFILE '$FIFO' INTO TABLE $DB.$TABLE \
   FIELDS TERMINATED BY ',' \
