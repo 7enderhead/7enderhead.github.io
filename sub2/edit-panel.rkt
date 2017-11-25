@@ -203,14 +203,15 @@
        route-min-stops))
 
     (define (data-ok?)
-      (let ([data-ok? (route-data-ok?)]
-            [exists? (route-exists?)]
-            [stop-number-ok? (stop-number-ok?)])
+      (let* ([data-ok? (route-data-ok?)]
+             [exists? (route-exists?)]
+             [stop-number-ok? (stop-number-ok?)]
+             [all-ok? (and data-ok? (not exists?) stop-number-ok?)])
         (send data-message show (not data-ok?))
         (send exists-message show exists?)
         (send stop-number-message show (not stop-number-ok?))
-        (send new-route-button enable (and (not exists?) stop-number-ok?))
-        (and data-ok? (not exists?) stop-number-ok?)))
+        (send new-route-button enable all-ok?)
+        all-ok?))
 
     (define (route-from-controls)
       (let ([number (->string (send number-field get-value))]
