@@ -22,42 +22,59 @@
     (define panel (new vertical-panel%
                        [parent parent]
                        [alignment '(left top)]))
+
+    (define data-label (new message%
+                            [parent panel]
+                            [label "Data for new Route"]
+                            [font large-font]
+                            [vert-margin 5]))
     
     (define data-panel
       (new vertical-panel%
            [parent panel]
            [alignment '(left top)]
-           [horiz-margin 10]))
+           [horiz-margin 10]
+           [border 10]
+           [style '(border)]
+           [spacing 10]
+           [stretchable-height #f]))
 
-    (define data-label (new message%
-                            [parent data-panel]
-                            [label "Data for new Route"]
-                            [font large-font]
-                            [vert-margin 5]))
+    (define number-type-panel
+      (new horizontal-panel%
+           [parent data-panel]
+           [alignment '(left center)]
+           [spacing 20]))
 
     (define number-field
       (new text-field%
-           [parent data-panel]
-           [label "Number"]
+           [parent number-type-panel]
+           [label "Number: "]
+           [stretchable-width #f]
+           [min-width 100]
            [callback (lambda (control event) (check-data))]))
     
     (define type-choice
       (new radio-box%
-           [label "Type"]
-           [parent data-panel]
+           [label "Type: "]
+           [parent number-type-panel]
            [choices '("Bus" "Tram")]
            [callback (lambda (control event) (check-data))]))
 
+    (define start-end-panel
+      (new horizontal-panel%
+           [parent data-panel]
+           [spacing 20]))
+    
     (define start-field
       (new text-field%
-           [parent data-panel]
-           [label "Start"]
+           [parent start-end-panel]
+           [label "Start: "]
            [callback (lambda (control event) (check-data))]))
 
     (define end-field
       (new text-field%
-           [parent data-panel]
-           [label "End"]
+           [parent start-end-panel]
+           [label "End: "]
            [callback (lambda (control event) (check-data))]))
 
     (define exists-message
@@ -181,7 +198,6 @@
     (define (check-data)
       (let ([exists? (route-exists?)]
             [stop-number-ok? (stop-number-ok?)])
-        (printf "check-data: exists? ~a, number-ok? ~a" exists? stop-number-ok?)
         (send exists-message show exists?)
         (send stop-number-message show (not stop-number-ok?))
         (send new-route-button enable (and (not exists?) stop-number-ok?))))
