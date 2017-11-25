@@ -233,7 +233,9 @@
                 (send provider
                       insert-route
                       (route-from-controls)
-                      (send stop-list get-all-ids))))]))
+                      (send stop-list get-all-ids))
+                (data-ok?) ; no, it's not because of the insert
+                ))]))
 
     (data-ok?) ; initial call
     

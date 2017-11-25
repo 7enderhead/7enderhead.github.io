@@ -14,7 +14,9 @@
                           [server (info 'db-server)]
                           [user (info 'db-user)]
                           [password (info 'db-password)]
-                          [database (info 'db-name)]))
+                          [database (info 'db-name)]
+                          [poll-millisecs (info 'db-poll-millisecs)]))
+    ; toggle for test provider
     #;(set! provider (new test-data-provider%)))
   provider)
 

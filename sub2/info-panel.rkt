@@ -56,6 +56,8 @@
                              list->set)])
             (send route-display show-routes routes)))))
 
+    (send provider add-callback display-routes)
+    
     ))
 
 (provide info-panel%)
