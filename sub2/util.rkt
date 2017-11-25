@@ -28,4 +28,9 @@
                      'normal
                      'bold))
 
+(define info-font (make-object font%
+                      (+ 1 (send normal-control-font get-size))
+                      (send normal-control-font get-family)
+                      'italic))
+
 (provide (all-defined-out))

@@ -55,4 +55,5 @@
 
 (send tab-panel delete-child edit-tab)
 
+(send main-frame maximize #t)
 (send main-frame show #t)
