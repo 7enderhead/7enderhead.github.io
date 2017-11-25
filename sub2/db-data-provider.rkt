@@ -124,7 +124,7 @@
     
     (define timer
       (new timer%
-           [interval 3000]
+           [interval poll-millisecs]
            [notify-callback
             (lambda ()
               (let ([new-checksum (query-checksum)])
