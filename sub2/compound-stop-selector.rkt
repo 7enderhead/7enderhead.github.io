@@ -105,7 +105,13 @@
                       (set! stops initial-stops))
                   (populate-list #t))))]))
 
-    (send compound-checkbox show allow-compounds)
+    (send panel change-children
+          (lambda (children)
+            (if allow-compounds
+                children
+                (filter (lambda (child)
+                          (not (equal? compound-checkbox child)))
+                        children))))
     
     (define data-list
       (let ([data-list
