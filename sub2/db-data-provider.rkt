@@ -2,9 +2,13 @@
 
 @(require (for-label "data-provider.rkt" "data-defs.rkt"))
 
-@title{db-data-provider<%>}
+@defmodule["db-data-provider.rkt"]
 
-@chunk[<all>
+@title{db-data-provider%}
+
+@section{Class db-data-provider%}
+
+@chunk[<*>
        <requires>
        
        (define db-data-provider%

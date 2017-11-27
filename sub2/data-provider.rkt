@@ -44,7 +44,7 @@
 }
 @section{Implementation}
 
-@chunk[<data-provider>
+@chunk[<*>
        (require racket/class)
        
        (define data-provider<%>
