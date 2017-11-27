@@ -62,9 +62,11 @@
                                [parent route-display-panel]))
 
     (define (display-routes)
+      (send route-display show-routes null)
       (let ([compound-stop1 (send selector1 get-selected-stop)]
             [compound-stop2 (send selector2 get-selected-stop)])
-        (when (and compound-stop1 compound-stop2)
+        (when (and (and compound-stop1 compound-stop2)
+                   (not (equal? compound-stop1 compound-stop2)))
           (let* ([stops1 (constituents compound-stop1)]
                  [stops2 (constituents compound-stop2)]
                  [routes (~> (for*/list ([stop1 stops1]
@@ -74,7 +76,10 @@
                                       [common-routes (set-intersect routes1 routes2)])
                                  common-routes))
                              flatten
-                             list->set)])
+                             remove-duplicates
+                             (sort (lambda (route1 route2)
+                                     (string<? (route-number route1)
+                                               (route-number route2)))))])
             (send route-display show-routes routes)))))
 
     (send provider add-callback display-routes)
