@@ -17,9 +17,15 @@
 
     (define panel (new vertical-panel%
                        [parent parent]))
+
+    (define selection-group-panel (new group-box-panel%
+                                       [parent panel]
+                                       [label "Stop Selection"]
+                                       [border 10]))
+
     
     (define selection-panel (new horizontal-panel%
-                                 [parent panel]))
+                                 [parent selection-group-panel]))
 
     (define selector1 (new compound-stop-selector%
                            [initial-stops stops]
@@ -29,6 +35,11 @@
                                        (display-routes))]
                            [focus #t]))
 
+    (new panel%
+         [parent selection-panel]
+         [min-width 30]
+         [stretchable-width #f])
+    
     (define selector2 (new compound-stop-selector%
                            [initial-stops stops]
                            [parent selection-panel]
@@ -37,8 +48,18 @@
                                        (display-routes))]
                            [focus #f]))
 
+    (new panel%
+         [parent panel]
+         [min-height 30]
+         [stretchable-height #f])
+    
+    (define route-display-panel (new group-box-panel%
+                                     [parent panel]
+                                     [label "Routes for Selected Stops"]
+                                     [border 10]))
+    
     (define route-display (new route-display%
-                               [parent panel]))
+                               [parent route-display-panel]))
 
     (define (display-routes)
       (let ([compound-stop1 (send selector1 get-selected-stop)]

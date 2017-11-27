@@ -73,7 +73,8 @@
     (define panel (new vertical-panel%
                        [parent parent]
                        [horiz-margin 10]
-                       [alignment '(left top)]))
+                       [alignment '(left top)]
+                       [spacing 10]))
 
     (define selection-message
       (new message%
@@ -129,21 +130,26 @@
         (send data-list set-column-widths '(300 200 400) 100 100)
         data-list))
 
-    (define filter-panel (new horizontal-panel%
+    (define filter-panel (new vertical-panel%
                               [parent panel]
+                              [spacing 10]
                               [stretchable-height #f]))
+    
+    (define name-filter-panel (new horizontal-panel%
+                                   [parent filter-panel]
+                                   [stretchable-height #f]))
 
     (define filter-checkbox (new check-box%
                                  [label "Name filter"]
-                                 [parent filter-panel]
+                                 [parent name-filter-panel]
                                  [value #t]))
 
     (define filter-textfield (new text-field%
                                   [label ""]
-                                  [parent filter-panel]))
+                                  [parent name-filter-panel]))
 
     (define lon-panel (new vertical-panel%
-                           [parent panel]
+                           [parent filter-panel]
                            [stretchable-height #f]
                            [alignment '(left top)]))
     
@@ -182,7 +188,7 @@
                              (send slider-converter max-lon-label (send slider get-value))))]))
 
     (define lat-panel (new vertical-panel%
-                           [parent panel]
+                           [parent filter-panel]
                            [stretchable-height #f]
                            [alignment '(left top)]))
 

@@ -28,10 +28,10 @@
 (define tab-panel
   (new tab-panel%
        [parent main-frame]
-       [choices '("Info" "Edit")]
+       [choices '("Routes Between Stops" "New Route Creation")]
        [callback
         (lambda (panel event)
-          (let ([active-tab (if (equal? "Info" (send panel get-item-label (send panel get-selection)))
+          (let ([active-tab (if (equal? 0 (send panel get-selection))
                                 info-tab
                                 edit-tab)])
             (send panel change-children (lambda (children)
