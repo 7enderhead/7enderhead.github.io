@@ -77,9 +77,7 @@
                                  common-routes))
                              flatten
                              remove-duplicates
-                             (sort (lambda (route1 route2)
-                                     (string<? (route-number route1)
-                                               (route-number route2)))))])
+                             sort-routes)])
             (send route-display show-routes routes)))))
 
     (send provider add-callback display-routes)
