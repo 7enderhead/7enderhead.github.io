@@ -1,5 +1,7 @@
 #lang scribble/lp2
 
+@defmodule["data-provider.rkt"]
+
 @title{Interface data-provider<%>}
 
 @section{Documentation}
@@ -35,7 +37,7 @@
   @racket[stop-ids] is optional and defaults to @racket[null]. If given, all stops referenced in @racket[stop-ids] are linked with the new route.
  }
 
- @defmethod[(add-callback [callback (-> void void)]) void]{
+ @defmethod[(add-callback [callback (void . -> . void)]) void]{
   Adds a callback to the data layer, which is invoked if the routes have changed.
  }
  
