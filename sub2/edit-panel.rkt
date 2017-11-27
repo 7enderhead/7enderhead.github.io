@@ -97,8 +97,7 @@
            [spacing 10]))
 
     (define inner-stop-panel
-      (new horizontal-panel%
-           [parent stop-panel]))
+      (new horizontal-panel% [parent stop-panel]))
     
     (define stop-selector (new compound-stop-selector%
                                [parent inner-stop-panel]
@@ -107,7 +106,9 @@
 
     (define button-panel (new vertical-panel%
                               [parent inner-stop-panel]
-                              [alignment '(center center)]))
+                              [alignment '(center center)]
+                              [stretchable-width #f]
+                              [horiz-margin 10]))
     
     (define add-button
       (new button%
@@ -120,14 +121,33 @@
                 (when selected-stop
                   (send stop-list add-stop selected-stop))))]))
 
-    (define remove-button (new button%
-                               [label "<- Remove Stop"]
-                               [parent button-panel]
-                               [stretchable-width #t]
-                               [callback
-                                (lambda (button event)
-                                  (send stop-list remove-selected-stop))]))
+    (define remove-button
+      (new button%
+           [label "<- Remove Stop"]
+           [parent button-panel]
+           [stretchable-width #t]
+           [callback
+            (lambda (button event)
+              (send stop-list remove-selected-stop))]))
 
+    (define stop-list-panel (new vertical-panel%
+                                 [parent inner-stop-panel]
+                                 [spacing 10]))
+
+    (define selection-message
+      (new message%
+           [label "Stops for New Route"]
+           [parent stop-list-panel]
+           [font large-font]
+           [stretchable-width #t]))
+
+    (define dummy-spacer-message
+      (new message%
+           [label ""]
+           [parent stop-list-panel]
+           [font larger-font]
+           [stretchable-width #t]))
+    
     (define stop-list
       (new
        (class data-list-box%
@@ -135,7 +155,7 @@
          (init [data-change-callback #f])
          
          (super-new [label ""]
-                    [parent inner-stop-panel]
+                    [parent stop-list-panel]
                     [choices '()]
                     [columns '("Name" "Longitude" "Latitude")]
                     [style '(single column-headers)]

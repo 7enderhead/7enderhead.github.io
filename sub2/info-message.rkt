@@ -8,12 +8,13 @@
 
     (init parent label)
 
-    (super-new [parent parent])
+    (super-new [parent parent]
+               [stretchable-height #f])
 
     (define icon
       (new message%
            [parent this]
-           [label 'app]))
+           [label 'caution]))
     
     (define text
       (new message%

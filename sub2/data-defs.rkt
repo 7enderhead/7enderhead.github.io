@@ -132,11 +132,24 @@
   #:methods gen:custom-write
   [(define write-proc
      (make-constructor-style-printer
-      (lambda (r) 'route)
-      (lambda (r) (list (route-id r)
-                        (route-type r)
-                        (route-number r)
-                        (route-start r)
-                        (route-end r)))))])
+      (lambda (route) 'route)
+      (lambda (route) (list (route-id route)
+                            (route-type route)
+                            (route-number route)
+                            (route-start route)
+                            (route-end route)))))])
+
+(define (route-compound-key route)
+  (format "~a~a~a~a"
+          (route-type route)
+          (route-number route)
+          (route-start route)
+          (route-end route)))
+
+(define (sort-routes routes)
+  (sort routes
+        (lambda (route1 route2)
+          (string<? (route-compound-key route1)
+                    (route-compound-key route2)))))
 
 (provide (all-defined-out))
