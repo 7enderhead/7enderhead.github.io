@@ -72,7 +72,6 @@
     
     (define panel (new vertical-panel%
                        [parent parent]
-                       [horiz-margin 10]
                        [alignment '(left top)]
                        [spacing 10]))
 
