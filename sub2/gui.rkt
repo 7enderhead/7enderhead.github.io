@@ -42,7 +42,7 @@ Tasks of main application:
 @itemlist[
  @item{@racket[tab-panel%] only provides the tabs, but not the actual switching}
  @item{so setup of two panels which host the respective controls}
- @item{unneeded panel is removed as panel child (and thus hidden)}
+ @item{unneeded panel is removed as tab panel child (and thus hidden)}
  ]
 
 @chunk[<tab-pane-setup>
@@ -74,7 +74,9 @@ Tasks of main application:
                                [parent edit-tab]
                                [provider provider]))
 
-       ; hide initially inactive tab
+       <hide-initially-unneeded-panel>]
+
+@chunk[<hide-initially-unneeded-panel>
        (send tab-panel delete-child edit-tab)]
 
 @section{File Structure}
