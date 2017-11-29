@@ -1,5 +1,7 @@
 #lang scribble/lp2
 
+@defmodule["gui.rkt"]
+
 @title{route21 GUI Application}
 
 An application that displays two tabs for displaying and manipulating route data:
@@ -18,7 +20,7 @@ Tasks of main application:
 @itemlist[
  @item{setup of centrally provided @racket[data-provider<%>] via module @racket[data-provider-factory]}
  @item{setup of gui main window}
- @item{setup of tabbed pane with two tabs and placement of respective controls (@racket[info-panel] and @racket[edit-panel])}
+ @item{setup of tabbed pane with two tabs and placement of respective controls (@racket[info-panel%] and @racket[edit-panel%])}
  ]
 
 @subsection{Setup of Data Provider}

@@ -91,6 +91,8 @@ Allows to treat single and multiple stops with the same name in a homogenous way
 
 @subsection{Generic Interface compoundable}
 
+@defproc[(constituents [compoundable gen:compoundable?]) (listof stop?)]
+
 @chunk[<compoundable>
        (define-generics compoundable
          (constituents compoundable)
