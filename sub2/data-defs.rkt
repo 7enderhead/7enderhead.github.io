@@ -4,9 +4,17 @@
 
 @title{Data Definitions}
 
-
+Defines the central structures needed to handle data.
 
 @section{Stops}
+
+@defstruct[stop ([id number?] [lon number?] [lat number?] [name string?] [alt-name string?])]{
+ @itemlist[
+ @item{@racket[stop-id] is the data layer id.}
+ @item{@racket[stop-lon]: longitude. Abbreviation is used throughout.}
+ @item{@racket[stop-lon]: latitude. Abbreviation is used throughout.}
+ ]
+}
 
 @chunk[<stop-struct>
        (struct stop (id lon lat name alt-name)
@@ -25,26 +33,11 @@
                                (coord->string (stop-lat s))
                                (stop-name s)))))])]
 
-@section{Compoundable Stops}
+@subsection{Helper Functions for Stops}
 
-Allows to treat single and multiple stops the same way.
+@chunk[<stop-helper-functions>
 
-@chunk[<compoundable>
-       (define-generics compoundable
-         (constituents compoundable)
-         (name compoundable)
-         (lon-range compoundable)
-         (lat-range compoundable))]
-
-
-@chunk[<*>
-       <requires>
-
-       <compoundable>
-
-       ;;; Stop
-
-       <stop-struct>
+       <group-stops-by-id>
 
        ; in meters
        (define (distance s1 s2)
@@ -68,13 +61,6 @@ Allows to treat single and multiple stops the same way.
        (define (min-lat stops) (process-filter stops min stop-lat default-min))
        (define (max-lat stops) (process-filter stops max stop-lat default-max))
 
-       (define (group-stops-by-id stops)
-         (for/fold
-          ([all (make-hash)])
-          ([stop (stops)])
-           (hash-set! all (stop-id stop) stop)
-           all))
-
        (define (stop-value-lists stops)
          (let-values ([(names lons lats)
                        (for/lists (names lons lats)
@@ -82,10 +68,39 @@ Allows to treat single and multiple stops the same way.
                          (values (~a (name stop))
                                  (~a (format-range (lon-range stop)))
                                  (~a (format-range (lat-range stop)))))])
-           (list names lons lats)))
+           (list names lons lats)))]
 
-       ;;; Compound Stop
+@subsubsection{Grouping Stops by Id}
 
+@defproc[(group-stops-by-id [stops (listof stop?)]) (hash/c number? stop?)]{
+ Takes a list of stops and returns a hashset where these stops are accessible by their @racket[stop-id].
+}
+
+@chunk[<group-stops-by-id>
+       (define (group-stops-by-id stops)
+         (for/fold
+          ([all (make-hash)])
+          ([stop (stops)])
+           (hash-set! all (stop-id stop) stop)
+           all))]
+
+
+@section{Compoundable Stops}
+
+Allows to treat single and multiple stops with the same name in a homogenous way.
+
+@subsection{Generic Interface compoundable}
+
+@chunk[<compoundable>
+       (define-generics compoundable
+         (constituents compoundable)
+         (name compoundable)
+         (lon-range compoundable)
+         (lat-range compoundable))]
+
+@subsection{Compound Stop}
+
+@chunk[<compound-stop-struct>
        (struct compound-stop (stops)
          #:transparent
 
@@ -110,8 +125,11 @@ Allows to treat single and multiple stops the same way.
                           "name" (name c)
                           "lon-range" (format-range (lon-range c))
                           "lat-range" (format-range (lat-range c))
-                          (compound-stop-stops c)))))])
+                          (compound-stop-stops c)))))])]
 
+@subsection{Compound Helper Functions}
+
+@chunk[<compound-helper-functions>
        (define (format-range range)
          (match-let ([(cons min max) range])
            (if (equal? min max)
@@ -138,10 +156,15 @@ Allows to treat single and multiple stops the same way.
                            ([all (mutable-set)])
                            ([compound compounds])
                             (set-union! all (constituents compound))
-                            all)))
+                            all)))]
 
-       ;;; Route
+@section{Routes}
 
+@defstruct[route ([id number?] [number string?] [type string?] [start string?] [end string?])]{
+ Note that apart from the data layer id all data are strings, since even a @racket[route-number] may contain letters.
+}
+
+@chunk[<route-struct>
        (struct route (id number type start end)
          #:transparent
          #:methods gen:custom-write
@@ -152,8 +175,11 @@ Allows to treat single and multiple stops the same way.
                                    (route-type route)
                                    (route-number route)
                                    (route-start route)
-                                   (route-end route)))))])
+                                   (route-end route)))))])]
 
+@subsection{Route Helper Functions}
+
+@chunk[<route-helper-functions>
        (define (route-compound-key route)
          (format "~a~a~a~a"
                  (route-type route)
@@ -165,12 +191,27 @@ Allows to treat single and multiple stops the same way.
          (sort routes
                (lambda (route1 route2)
                  (string<? (route-compound-key route1)
-                           (route-compound-key route2)))))
+                           (route-compound-key route2)))))]
 
-       (provide (all-defined-out))
-       ]
+@section{File Structure}
 
-@section{Required Imports}
+@chunk[<*>
+       <requires>
+
+       <compoundable>
+
+       <stop-struct>
+       <stop-helper-functions>
+       
+       <compound-stop-struct>
+       <compound-helper-functions>
+      
+       <route-struct>
+       <route-helper-functions>
+
+       (provide (all-defined-out))]
+
+@subsection{Required Imports}
 
 @chunk[<requires>
        (require racket)
