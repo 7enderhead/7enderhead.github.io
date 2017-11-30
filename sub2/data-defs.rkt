@@ -1,155 +1,225 @@
-#lang racket
+#lang scribble/lp2
 
-(require racket/struct)
-(require racket/generic)
-(require racket/format)
-(require threading)
-(require "util.rkt")
-(require (prefix-in hav: "haversine.rkt"))
+@defmodule["data-defs.rkt"]
 
-(define-generics compoundable
-  (constituents compoundable)
-  (name compoundable)
-  (lon-range compoundable)
-  (lat-range compoundable))
+@title[@#:tag "data-defs"]{Data Definitions}
 
-;;; Stop
+Defines the central structures needed to handle data.
 
-(struct stop (id lon lat name alt-name)
-  #:transparent
-  #:methods gen:compoundable
-  [(define (constituents stop) (set stop))
-   (define (name stop) (stop-name stop))
-   (define (lon-range stop) (cons (stop-lon stop) (stop-lon stop)))
-   (define (lat-range stop) (cons (stop-lat stop) (stop-lat stop)))]
-  #:methods gen:custom-write
-  [(define write-proc
-     (make-constructor-style-printer
-      (lambda (s) 'stop)
-      (lambda (s) (list (stop-id s)
-                        (coord->string (stop-lon s))
-                        (coord->string (stop-lat s))
-                        (stop-name s)))))])
+@section{Stops}
 
-; in meters
-(define (distance s1 s2)
-  (* (hav:distance
-      (hav:deg-to-rad (stop-lat s1))
-      (hav:deg-to-rad (stop-lon s1))
-      (hav:deg-to-rad (stop-lat s2))
-      (hav:deg-to-rad (stop-lon s2)))
-     1000))
+@defstruct[stop ([id number?] [lon number?] [lat number?] [name string?] [alt-name string?])]{
+ @itemlist[
+ @item{@racket[stop-id] is the data layer id.}
+ @item{@racket[stop-lon]: longitude. Abbreviation is used throughout.}
+ @item{@racket[stop-lon]: latitude. Abbreviation is used throughout.}
+ ]
+}
 
-(define (process-filter stops processor accessor [default-value #f])
-  (if (not (empty? stops))
-      (apply processor (map (lambda (stop) (accessor stop)) stops))
-      default-value))
+@chunk[<stop-struct>
+       (struct stop (id lon lat name alt-name)
+         #:transparent
+         #:methods gen:compoundable
+         [(define (constituents stop) (set stop))
+          (define (name stop) (stop-name stop))
+          (define (lon-range stop) (cons (stop-lon stop) (stop-lon stop)))
+          (define (lat-range stop) (cons (stop-lat stop) (stop-lat stop)))]
+         #:methods gen:custom-write
+         [(define write-proc
+            (make-constructor-style-printer
+             (lambda (s) 'stop)
+             (lambda (s) (list (stop-id s)
+                               (coord->string (stop-lon s))
+                               (coord->string (stop-lat s))
+                               (stop-name s)))))])]
 
-(define default-min 0)
-(define default-max 0)
+@subsection{Helper Functions for Stops}
 
-(define (min-lon stops) (process-filter stops min stop-lon default-min))
-(define (max-lon stops) (process-filter stops max stop-lon default-max))
-(define (min-lat stops) (process-filter stops min stop-lat default-min))
-(define (max-lat stops) (process-filter stops max stop-lat default-max))
+@chunk[<stop-helper-functions>
 
-(define (group-stops-by-id stops)
-  (for/fold
-   ([all (make-hash)])
-   ([stop (stops)])
-    (hash-set! all (stop-id stop) stop)
-    all))
+       <group-stops-by-id>
 
-(define (stop-value-lists stops)
-  (let-values ([(names lons lats)
-                (for/lists (names lons lats)
-                  ([stop stops])
-                  (values (~a (name stop))
-                          (~a (format-range (lon-range stop)))
-                          (~a (format-range (lat-range stop)))))])
-    (list names lons lats)))
+       ; in meters
+       (define (distance s1 s2)
+         (* (hav:distance
+             (hav:deg-to-rad (stop-lat s1))
+             (hav:deg-to-rad (stop-lon s1))
+             (hav:deg-to-rad (stop-lat s2))
+             (hav:deg-to-rad (stop-lon s2)))
+            1000))
 
-;;; Compound Stop
+       (define (process-filter stops processor accessor [default-value #f])
+         (if (not (empty? stops))
+             (apply processor (map (lambda (stop) (accessor stop)) stops))
+             default-value))
 
-(struct compound-stop (stops)
-  #:transparent
+       (define default-min 0)
+       (define default-max 0)
 
-  #:methods gen:compoundable
-  [(define (constituents compound) (compound-stop-stops compound))
+       (define (min-lon stops) (process-filter stops min stop-lon default-min))
+       (define (max-lon stops) (process-filter stops max stop-lon default-max))
+       (define (min-lat stops) (process-filter stops min stop-lat default-min))
+       (define (max-lat stops) (process-filter stops max stop-lat default-max))
 
-   (define (name compound) (stop-name (set-first (constituents compound))))
+       (define (stop-value-lists stops)
+         (let-values ([(names lons lats)
+                       (for/lists (names lons lats)
+                         ([stop stops])
+                         (values (~a (name stop))
+                                 (~a (format-range (lon-range stop)))
+                                 (~a (format-range (lat-range stop)))))])
+           (list names lons lats)))]
 
-   (define (lon-range compound)
-     (let ([stops (set->list (constituents compound))])
-       (cons (min-lon stops) (max-lon stops))))
+@subsubsection{Grouping Stops by Id}
 
-   (define (lat-range compound)
-     (let ([stops (set->list (constituents compound))])
-       (cons (min-lat stops) (max-lat stops))))]
+@defproc[(group-stops-by-id [stops (listof stop?)]) (hash/c number? stop?)]{
+ Takes a list of stops and returns a hashset where these stops are accessible by their @racket[stop-id].
+}
 
-  #:methods gen:custom-write
-  [(define write-proc
-     (make-constructor-style-printer
-      (lambda (c) 'compound-stop)
-      (lambda (c) (list
-                   "name" (name c)
-                   "lon-range" (format-range (lon-range c))
-                   "lat-range" (format-range (lat-range c))
-                   (compound-stop-stops c)))))])
+@chunk[<group-stops-by-id>
+       (define (group-stops-by-id stops)
+         (for/fold
+          ([all (make-hash)])
+          ([stop (stops)])
+           (hash-set! all (stop-id stop) stop)
+           all))]
 
-(define (format-range range)
-  (match-let ([(cons min max) range])
-    (if (equal? min max)
-        (coord->string min)
-        (format "~a - ~a"
-                (coord->string min)
-                (coord->string max)))))
 
-(define (range-< range1 range2)
-  (match-let ([(cons min1 _) range1]
-              [(cons min2 _) range2])
-    (< min1 min2)))
+@section{Compoundable Stops}
 
-(define (wrap-stops-as-compounds stops)
-  (map (lambda (stop) (compound-stop (set stop))) stops))
+Allows to treat single and multiple stops with the same name in a homogenous way.
 
-(define (compound-stops-by-name stops)
-  (~>> stops
-       (group-by (lambda (stop) (stop-name stop)))
-       (map (lambda (stops) (compound-stop (list->set stops))))))
+@subsection{Generic Interface compoundable}
 
-(define (all-constituents compounds)
-  (set-union (set) (for/fold
-                    ([all (mutable-set)])
-                    ([compound compounds])
-                     (set-union! all (constituents compound))
-                     all)))
+@defproc[(constituents [compoundable gen:compoundable?]) (listof stop?)]
 
-;;; Route
+@chunk[<compoundable>
+       (define-generics compoundable
+         (constituents compoundable)
+         (name compoundable)
+         (lon-range compoundable)
+         (lat-range compoundable))]
 
-(struct route (id number type start end)
-  #:transparent
-  #:methods gen:custom-write
-  [(define write-proc
-     (make-constructor-style-printer
-      (lambda (route) 'route)
-      (lambda (route) (list (route-id route)
-                            (route-type route)
-                            (route-number route)
-                            (route-start route)
-                            (route-end route)))))])
+@subsection{Compound Stop}
 
-(define (route-compound-key route)
-  (format "~a~a~a~a"
-          (route-type route)
-          (route-number route)
-          (route-start route)
-          (route-end route)))
+@chunk[<compound-stop-struct>
+       (struct compound-stop (stops)
+         #:transparent
 
-(define (sort-routes routes)
-  (sort routes
-        (lambda (route1 route2)
-          (string<? (route-compound-key route1)
-                    (route-compound-key route2)))))
+         #:methods gen:compoundable
+         [(define (constituents compound) (compound-stop-stops compound))
 
-(provide (all-defined-out))
+          (define (name compound) (stop-name (set-first (constituents compound))))
+
+          (define (lon-range compound)
+            (let ([stops (set->list (constituents compound))])
+              (cons (min-lon stops) (max-lon stops))))
+
+          (define (lat-range compound)
+            (let ([stops (set->list (constituents compound))])
+              (cons (min-lat stops) (max-lat stops))))]
+
+         #:methods gen:custom-write
+         [(define write-proc
+            (make-constructor-style-printer
+             (lambda (c) 'compound-stop)
+             (lambda (c) (list
+                          "name" (name c)
+                          "lon-range" (format-range (lon-range c))
+                          "lat-range" (format-range (lat-range c))
+                          (compound-stop-stops c)))))])]
+
+@subsection{Compound Helper Functions}
+
+@chunk[<compound-helper-functions>
+       (define (format-range range)
+         (match-let ([(cons min max) range])
+           (if (equal? min max)
+               (coord->string min)
+               (format "~a - ~a"
+                       (coord->string min)
+                       (coord->string max)))))
+
+       (define (range-< range1 range2)
+         (match-let ([(cons min1 _) range1]
+                     [(cons min2 _) range2])
+           (< min1 min2)))
+
+       (define (wrap-stops-as-compounds stops)
+         (map (lambda (stop) (compound-stop (set stop))) stops))
+
+       (define (compound-stops-by-name stops)
+         (~>> stops
+              (group-by (lambda (stop) (stop-name stop)))
+              (map (lambda (stops) (compound-stop (list->set stops))))))
+
+       (define (all-constituents compounds)
+         (set-union (set) (for/fold
+                           ([all (mutable-set)])
+                           ([compound compounds])
+                            (set-union! all (constituents compound))
+                            all)))]
+
+@section{Routes}
+
+@defstruct[route ([id number?] [number string?] [type string?] [start string?] [end string?])]{
+ Note that apart from the data layer id all data are strings, since even a @racket[route-number] may contain letters.
+}
+
+@chunk[<route-struct>
+       (struct route (id number type start end)
+         #:transparent
+         #:methods gen:custom-write
+         [(define write-proc
+            (make-constructor-style-printer
+             (lambda (route) 'route)
+             (lambda (route) (list (route-id route)
+                                   (route-type route)
+                                   (route-number route)
+                                   (route-start route)
+                                   (route-end route)))))])]
+
+@subsection{Route Helper Functions}
+
+@chunk[<route-helper-functions>
+       (define (route-compound-key route)
+         (format "~a~a~a~a"
+                 (route-type route)
+                 (route-number route)
+                 (route-start route)
+                 (route-end route)))
+
+       (define (sort-routes routes)
+         (sort routes
+               (lambda (route1 route2)
+                 (string<? (route-compound-key route1)
+                           (route-compound-key route2)))))]
+
+@section{File Structure}
+
+@chunk[<*>
+       <requires>
+
+       <compoundable>
+
+       <stop-struct>
+       <stop-helper-functions>
+       
+       <compound-stop-struct>
+       <compound-helper-functions>
+      
+       <route-struct>
+       <route-helper-functions>
+
+       (provide (all-defined-out))]
+
+@subsection{Required Imports}
+
+@chunk[<requires>
+       (require racket)
+       (require racket/struct)
+       (require racket/generic)
+       (require racket/format)
+       (require threading)
+       (require "util.rkt")
+       (require (prefix-in hav: "haversine.rkt"))]

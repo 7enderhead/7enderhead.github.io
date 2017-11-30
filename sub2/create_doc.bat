@@ -1,0 +1,1 @@
+scribble --style doc/manual-style.css ++style doc/manual-racket.css ++style doc/manual-fonts.css ++main-xref-in --redirect-main "https://docs.racket-lang.org" --dest doc doc-overview.scrbl data-defs.rkt data-provider.rkt db-data-provider.rkt gui.rkt info-panel.rkt edit-panel.rkt
