@@ -11,7 +11,6 @@
 All work is done by a dedicated @racket[info-panel%] class.
 
 @defclass[info-panel% vertical-panel% ()]{
-
  @itemlist[
  @item{groups its children by a labelled group box}
  @item{arranges two @racket[compound-stop-selector%]s side-by-side}
@@ -121,7 +120,7 @@ All work is done by a dedicated @racket[info-panel%] class.
              remove-duplicates
              sort-routes))]
 
-@section{File Structure}
+@section{Code Structure}
 
 @chunk[<*>
        <requires>
