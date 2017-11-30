@@ -6,7 +6,10 @@
 
 @itemlist[
  @item{@secref["data-defs"]}
- @item{@secref["data-provider"]}
+ @item{@secref["data-provider"]
+ @itemlist[
+  @item{@secref["db-data-provider"]}
+ ]}
  ]
 
 @section{GUI Layer}
