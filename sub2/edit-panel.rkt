@@ -2,7 +2,7 @@
 
 @defmodule["edit-panel.rkt"]
 
-@title{Creation of New Routes}
+@title[#:tag "edit-panel"]{Creation of New Routes}
 
 @image["./doc/edit-tab.png"]
 

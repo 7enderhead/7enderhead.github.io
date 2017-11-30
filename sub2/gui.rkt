@@ -2,7 +2,7 @@
 
 @defmodule["gui.rkt"]
 
-@title{route21 GUI Application}
+@title[#:tag "gui"]{route21 GUI Application}
 
 An application that displays two tabs for displaying and manipulating route data:
 

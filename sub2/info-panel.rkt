@@ -2,7 +2,7 @@
 
 @defmodule["info-panel.rkt"]
 
-@title{Display of Routes Between Stops}
+@title[#:tag "info-panel"]{Display of Routes Between Stops}
 
 @image["./doc/info-tab.png"]
 

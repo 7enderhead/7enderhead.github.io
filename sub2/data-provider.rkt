@@ -2,7 +2,7 @@
 
 @defmodule["data-provider.rkt"]
 
-@title{Interface data-provider<%>}
+@title[#:tag "data-provider"]{Interface data-provider<%>}
 
 @section{Documentation}
 

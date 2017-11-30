@@ -2,7 +2,7 @@
 
 @defmodule["data-defs.rkt"]
 
-@title{Data Definitions}
+@title[@#:tag "data-defs"]{Data Definitions}
 
 Defines the central structures needed to handle data.
 
