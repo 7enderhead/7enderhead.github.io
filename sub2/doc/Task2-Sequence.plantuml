@@ -1,0 +1,25 @@
+@startuml
+box "Database" #WhiteSmoke
+database MySQL
+end box
+box "Data Access Layer" #Lavender
+entity "db-data-provider%"
+boundary "data-provider<%>"
+end box
+box "Domain Entities" #Linen
+entity route
+end box
+boundary "GUI control"
+actor User
+title Task 2 - Desktop Application
+User -> "GUI control": request data
+"GUI control" -> "data-provider<%>": get data
+"data-provider<%>" -> "db-data-provider%": get data implementation
+"db-data-provider%" -> MySQL: query data
+"db-data-provider%" <-- MySQL: raw DB data
+"db-data-provider%" -> route: create from DB data
+"db-data-provider%" <-- route
+"data-provider<%>" <-- "db-data-provider%": route
+"GUI control" <-- "data-provider<%>": route
+"GUI control" -> "GUI control": display route information
+@enduml
