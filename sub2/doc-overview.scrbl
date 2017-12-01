@@ -2,6 +2,8 @@
 
 @title{route21 Documentation Overview}
 
+@secref["architecture"]
+
 @section{Data Layer}
 
 @itemlist[

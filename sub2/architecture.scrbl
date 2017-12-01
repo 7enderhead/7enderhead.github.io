@@ -2,15 +2,9 @@
 
 @(require (for-label "data-defs.rkt" "data-provider.rkt" "db-data-provider.rkt"))
 
-@title[#:tag]{Architecture Overview}
+@title[#:tag "architecture"]{Architecture Overview}
 
-@section{General Points}
-
-@itemlist[
- @item{data persistence is a standalone MySQL database server in a separate virtual machine}
- ]
-
-@section{Desktop Application}
+@section{Task 2 - Desktop Application}
 
 To recap, here is a typical data retrieval and display cycle as implemented in the desktop application:
 
@@ -24,7 +18,7 @@ To recap, here is a typical data retrieval and display cycle as implemented in t
 
 @image["./doc/Task2-Sequence.svg" #:scale 0.8]
 
-@section{Static Web Application}
+@section{Task 3 - Static Web Application}
 
 @itemlist[
  @item{The @italic{static web application} uses the same database server, data access layer and domain entities as the GUI Application.}
@@ -47,7 +41,7 @@ Example code handling a request and showing a static web form with dynamic data 
 
 @image["./doc/Task3-Sequence.svg" #:scale 0.8]
 
-@section{Dynamic Web Application}
+@section{Task 4 - Dynamic Web Application}
 
 @itemlist[
  @item{The @italic{dynamic web application} uses the MySQL database server and data model from Tasks 2 and 3.}
