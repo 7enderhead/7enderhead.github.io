@@ -2,6 +2,8 @@
 
 @title{route21 Documentation Overview}
 
+@secref["faq"]
+
 @secref["architecture"]
 
 @section{Data Layer}
@@ -21,5 +23,6 @@
   @itemlist[
  @item{@secref["info-panel"]}
  @item{@secref["edit-panel"]}
+ @item{@secref["compound-stop-selector"]}
  ]}
  ]
