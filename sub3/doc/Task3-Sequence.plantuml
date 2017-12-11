@@ -1,0 +1,28 @@
+@startuml
+box "Database" #WhiteSmoke
+database MySQL
+end box
+box "Data Access Layer" #Lavender
+entity "db-data-provider%"
+boundary "data-provider<%>"
+end box
+box "Domain Entities" #Linen
+entity route
+end box
+entity "request handler"
+boundary "Web form"
+actor User
+title Task 3 - Static Web Application
+User -> "Web form": request data
+"Web form" -> "request handler": get/post
+"request handler" -> "data-provider<%>": get data
+"data-provider<%>" -> "db-data-provider%": get data implementation
+"db-data-provider%" -> MySQL: query data
+"db-data-provider%" <-- MySQL: raw DB data
+"db-data-provider%" -> route: create from DB data
+"db-data-provider%" <-- route
+"data-provider<%>" <-- "db-data-provider%": route
+"request handler" <-- "data-provider<%>": route
+"request handler" -> "request handler": create new form from data
+"request handler" --> "Web form": render new
+@enduml
