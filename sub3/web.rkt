@@ -34,8 +34,11 @@
    (#%# ,{(select-input stops
                         #:attributes '((size "40"))
                         #:display (lambda (stop)
-                                    (stop-name stop))) . => . stop1})
-   (list stop1)))
+                                    (stop-name stop))) . => . stop1}
+        ,{(text-input) . => . name-filter}
+        ,{(input #:type "range") . => . min-lon}
+       )
+   (values stop1 name-filter min-lon)))
 
 (define (render-stop-info-page request)
   (define (response-generator embed/url)
@@ -43,42 +46,16 @@
      `(html
        (head (title "Stop Info"))
        (body (h1 "List of Stops")
-             (form ([action ,(embed/url show-selected)])
+             (form ([action ,(embed/url show-selected-stop-info)])
                    ,@(formlet-display stop-list-formlet)
                    (p (input ([type "submit"]))))))))
   (send/suspend/dispatch response-generator))
 
-(define (render-stop-info-page_old request)
-  (define (response-generator embed/url)
-    (response/xexpr
-     `(html
-       (head (title "Stop Info"))
-       (body (h1 "List of Stops")
-             (form ([action ,(embed/url show-selected)])
-                   (p (select ([size "40"]
-                               [name "stop1"])
-                              ,@(all-stops)))
-                   (p (select ([size "40"]
-                               [name "stop2"])
-                              ,@(all-stops)))
-                   (p (input ([type "submit"]))))))))
-  (send/suspend/dispatch response-generator))
-
-(define (show-selected request)
-  (define (response-generator embed/url)
-    (response/xexpr
-     `(html
-       (head (title "Selected"))
-       (body (h1 "Selected Person")
-             (p ,(if-let [selected (get-selected-person request)]
-                         selected
-                         "none selected"))
-             (a ([href ,(embed/url render-stop-info-page)])
-                "Back to All")))))
-  (send/suspend/dispatch response-generator))
-
-(define (get-selected-person request)
-  (let ([bindings (request-bindings request)])
-    (if (exists-binding? 'person bindings)
-        (extract-binding/single 'person bindings)
-        #f)))
+(define (show-selected-stop-info request)
+  (define-values (stop1 name-filter min-lon)
+    (formlet-process stop-list-formlet request))
+  (response/xexpr
+   `(html
+     (head (title "Detailed Info"))
+     (body (h1 ,(stop-name stop1))
+           ,(~a (binding:form-value name-filter)) ,(~a (binding:form-value min-lon))))))
