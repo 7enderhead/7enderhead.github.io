@@ -3,6 +3,8 @@
 (require racket/format)
 (require web-server/http/bindings)
 (require web-server/formlets)
+(require web-server/formlets/input)
+(require web-server/formlets/input)
 (require anaphoric)
 (require threading)
 (require "data-defs.rkt")
@@ -29,7 +31,10 @@
 
 (define stop-list-formlet
   (formlet
-   (div "Stop 1:" ,{select-input stops . => . stop1 })
+   (#%# ,{(select-input stops
+                        #:attributes '((size "40"))
+                        #:display (lambda (stop)
+                                    (stop-name stop))) . => . stop1})
    (list stop1)))
 
 (define (render-stop-info-page request)
@@ -40,9 +45,6 @@
        (body (h1 "List of Stops")
              (form ([action ,(embed/url show-selected)])
                    ,@(formlet-display stop-list-formlet)
-                   (p (select ([size "40"]
-                               [name "stop2"])
-                              ,@(all-stops)))
                    (p (input ([type "submit"]))))))))
   (send/suspend/dispatch response-generator))
 
