@@ -11,6 +11,10 @@
 (require "data-provider.rkt")
 (require "data-provider-factory.rkt")
 
+;; debug imports
+(require web-server/http/request-structs)
+
+
 (define provider (data-provider))
 
 (define stops (~> (send provider stops)
@@ -31,31 +35,34 @@
 
 (define stop-list-formlet
   (formlet
-   (#%# ,{(select-input stops
-                        #:attributes '((size "40"))
-                        #:display (lambda (stop)
-                                    (stop-name stop))) . => . stop1}
-        ,{(text-input) . => . name-filter}
-        ,{(input #:type "range") . => . min-lon}
-       )
-   (values stop1 name-filter min-lon)))
+   (#%# (div ,{(select-input stops
+                             #:attributes '((size "40"))
+                             #:display (lambda (stop)
+                                         (stop-name stop))) . => . stop1})
+        (div ,{(checkbox "" #t) . => . use-name-filter?}
+             "Name filter "
+             ,{(text-input) . => . name-filter})
+        (div ,{(input #:type "range") . => . min-lon}))
+   (values stop1 use-name-filter? name-filter min-lon)))
+
+(define (has-bindings? request)
+  (not (null? (force (request-bindings/raw-promise request)))))
 
 (define (render-stop-info-page request)
+  (define-values (stop1 use-name-filter? name-filter min-lon)
+    (with-handlers ([(lambda (e) #t) (lambda (e) (values #f #f #f #f))])
+      (formlet-process stop-list-formlet request)))
+  (printf "stop1: ~a, use-name-filter?: ~a, name-filter: ~a~n" stop1 use-name-filter? name-filter)
   (define (response-generator embed/url)
     (response/xexpr
      `(html
        (head (title "Stop Info"))
        (body (h1 "List of Stops")
-             (form ([action ,(embed/url show-selected-stop-info)])
+             (h2 ,(if stop1
+                      (stop-name stop1)
+                      "no stop selected"))
+             (form ([action ,(embed/url render-stop-info-page)])
                    ,@(formlet-display stop-list-formlet)
-                   (p (input ([type "submit"]))))))))
+                   (p (input ([type "submit"]))))
+             ))))
   (send/suspend/dispatch response-generator))
-
-(define (show-selected-stop-info request)
-  (define-values (stop1 name-filter min-lon)
-    (formlet-process stop-list-formlet request))
-  (response/xexpr
-   `(html
-     (head (title "Detailed Info"))
-     (body (h1 ,(stop-name stop1))
-           ,(~a (binding:form-value name-filter)) ,(~a (binding:form-value min-lon))))))
