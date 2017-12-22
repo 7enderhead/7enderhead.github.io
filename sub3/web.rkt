@@ -4,7 +4,7 @@
 (require web-server/http/bindings)
 (require web-server/formlets)
 (require web-server/formlets/input)
-(require web-server/formlets/input)
+(require web-server/formlets/lib)
 (require anaphoric)
 (require threading)
 (require "data-defs.rkt")
@@ -14,7 +14,6 @@
 ;; debug imports
 (require web-server/http/request-structs)
 
-
 (define provider (data-provider))
 
 (define stops (~> (send provider stops)
@@ -22,26 +21,20 @@
                           (string<? (stop-name stop1)
                                     (stop-name stop2))))))
 
-(define (wrap-select stops)
-  (for/list ([stop stops])
-    `(option ([value ,(~a (stop-id stop))])
-             ,(stop-name stop))))
-
-(define (all-stops)
-  (wrap-select stops))
-
 (define (start request)
   (render-stop-info-page request))
 
 (define stop-list-formlet
   (formlet
-   (#%# (div ,{(select-input stops
-                             #:attributes '((size "40"))
-                             #:display (lambda (stop)
-                                         (stop-name stop))) . => . stop1})
-        (div ,{(checkbox "" #t) . => . use-name-filter?}
+   (#%# (div ,{(multiselect-input stops
+                                  #:multiple? #f
+                                  #:attributes '((size "40"))
+                                  #:display (lambda (stop)
+                                              (stop-name stop))) . => . stop1})
+        (div ,{(cross (pure (lambda (x) (and x #t)))
+                      (checkbox "" #t)) . => . use-name-filter?}
              "Name filter "
-             ,{(text-input) . => . name-filter})
+             ,{input-string . => . name-filter})
         (div ,{(input #:type "range") . => . min-lon}))
    (values stop1 use-name-filter? name-filter min-lon)))
 
@@ -49,10 +42,14 @@
   (not (null? (force (request-bindings/raw-promise request)))))
 
 (define (render-stop-info-page request)
-  (define-values (stop1 use-name-filter? name-filter min-lon)
+  (printf "request bindings: ~v~n" (force (request-bindings/raw-promise request)))
+  (define-values (stop1-in use-name-filter? name-filter min-lon)
     (with-handlers ([(lambda (e) #t) (lambda (e) (values #f #f #f #f))])
       (formlet-process stop-list-formlet request)))
-  (printf "stop1: ~a, use-name-filter?: ~a, name-filter: ~a~n" stop1 use-name-filter? name-filter)
+  (define stop1 (if (and stop1-in (not (null? stop1-in)))
+                    (car stop1-in)
+                    #f))
+  (printf "stop1: ~v, use-name-filter?: ~v, name-filter: ~v~n" stop1 use-name-filter? name-filter)
   (define (response-generator embed/url)
     (response/xexpr
      `(html
