@@ -28,7 +28,8 @@
 (define (start request)
   (render-stop-info-page request))
 
-(define stop-list-formlet
+(define (stop-list-formlet
+         #:name-filter-checked [name-filter-checked? #t])
   (formlet
    (#%# (div ,{(multiselect-input stops
                                   #:multiple? #f
@@ -38,7 +39,7 @@
                                   #:display (lambda (stop)
                                               (stop-name stop))) . => . stop1})
         (div ,{(cross (pure (lambda (x) (and x #t)))
-                      (checkbox "" #t)) . => . use-name-filter?}
+                      (checkbox "" name-filter-checked?)) . => . use-name-filter?}
              "Name filter "
              ,{input-string . => . name-filter})
         (div ,{(input #:type "range") . => . min-lon}))
@@ -50,8 +51,8 @@
 (define (render-stop-info-page request)
   (printf "request bindings: ~v~n" (force (request-bindings/raw-promise request)))
   (define-values (stop1-in use-name-filter? name-filter min-lon)
-    (with-handlers ([(lambda (e) #t) (lambda (e) (values #f #f #f #f))])
-      (formlet-process stop-list-formlet request)))
+    (with-handlers ([(lambda (e) #t) (lambda (e) (values #f #t #f #f))])
+      (formlet-process (stop-list-formlet) request)))
   (define stop1 (if (and stop1-in (not (null? stop1-in)))
                     (car stop1-in)
                     #f))
@@ -65,7 +66,8 @@
                       (stop-name stop1)
                       "no stop selected"))
              (form ([action ,(embed/url render-stop-info-page)])
-                   ,@(formlet-display stop-list-formlet)
+                   ,@(formlet-display (stop-list-formlet
+                                       #:name-filter-checked use-name-filter?))
                    (p (input ([type "submit"]))))
              ))))
   (send/suspend/dispatch response-generator))
