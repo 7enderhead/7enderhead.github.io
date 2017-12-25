@@ -6,3 +6,4 @@
 (define db-poll-millisecs 3000)
 (define coord-string-length 10)
 (define route-min-stops 2)
+(define web-stop-list-size 25)

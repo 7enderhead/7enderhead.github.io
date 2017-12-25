@@ -7,12 +7,16 @@
 (require web-server/formlets/lib)
 (require anaphoric)
 (require threading)
+(require setup/getinfo)
+(require sugar/coerce)
 (require "data-defs.rkt")
 (require "data-provider.rkt")
 (require "data-provider-factory.rkt")
 
 ;; debug imports
 (require web-server/http/request-structs)
+
+(define info (get-info/full "."))
 
 (define provider (data-provider))
 
@@ -28,7 +32,9 @@
   (formlet
    (#%# (div ,{(multiselect-input stops
                                   #:multiple? #f
-                                  #:attributes '((size "40"))
+                                  #:attributes (list
+                                                (list 'size
+                                                      (->string (info 'web-stop-list-size))))
                                   #:display (lambda (stop)
                                               (stop-name stop))) . => . stop1})
         (div ,{(cross (pure (lambda (x) (and x #t)))
