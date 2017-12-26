@@ -17,21 +17,21 @@ Defines the central structures needed to handle data.
 }
 
 @chunk[<stop-struct>
-       (struct stop (id lon lat name alt-name)
-         #:transparent
-         #:methods gen:compoundable
-         [(define (constituents stop) (set stop))
-          (define (name stop) (stop-name stop))
-          (define (lon-range stop) (cons (stop-lon stop) (stop-lon stop)))
-          (define (lat-range stop) (cons (stop-lat stop) (stop-lat stop)))]
-         #:methods gen:custom-write
-         [(define write-proc
-            (make-constructor-style-printer
-             (lambda (s) 'stop)
-             (lambda (s) (list (stop-id s)
-                               (coord->string (stop-lon s))
-                               (coord->string (stop-lat s))
-                               (stop-name s)))))])]
+       (serializable-struct stop (id lon lat name alt-name)
+                            #:transparent
+                            #:methods gen:compoundable
+                            [(define (constituents stop) (set stop))
+                             (define (name stop) (stop-name stop))
+                             (define (lon-range stop) (cons (stop-lon stop) (stop-lon stop)))
+                             (define (lat-range stop) (cons (stop-lat stop) (stop-lat stop)))]
+                            #:methods gen:custom-write
+                            [(define write-proc
+                               (make-constructor-style-printer
+                                (lambda (s) 'stop)
+                                (lambda (s) (list (stop-id s)
+                                                  (coord->string (stop-lon s))
+                                                  (coord->string (stop-lat s))
+                                                  (stop-name s)))))])]
 
 @subsection{Helper Functions for Stops}
 
@@ -218,6 +218,7 @@ Allows to treat single and multiple stops with the same name in a homogenous way
 @chunk[<requires>
        (require racket)
        (require racket/struct)
+       (require racket/serialize)
        (require racket/generic)
        (require racket/format)
        (require threading)

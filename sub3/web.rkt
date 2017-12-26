@@ -9,11 +9,12 @@
 (require web-server/formlets)
 (require web-server/formlets/input)
 (require web-server/formlets/lib)
-(require web-server/lang/web-cells)
+(require web-server/servlet/web-cells)
 (require "data-defs.rkt")
 (require "data-provider.rkt")
 (require "data-provider-factory.rkt")
 (require "list-layout.rkt")
+(require "stop-formlet-state.rkt")
 
 ;; debug imports
 (require web-server/http/request-structs)
@@ -27,24 +28,36 @@
                           (string<? (stop-name stop1)
                                     (stop-name stop2))))))
 
+(define default-stop-list-state
+  (stop-list-state #f
+                   (list-layout ""
+                                (min-lon stops)
+                                (max-lon stops)
+                                (min-lat stops)
+                                (max-lat stops)
+                                0)
+                   #t #f #f))
+
+(define default-stop-formlet-state
+  (stop-formlet-state default-stop-list-state
+                      default-stop-list-state))
+
+(define formlet-state
+  (make-web-cell default-stop-formlet-state))
+
 (define (start request)
   (render-stop-info-page request))
 
-
-
-(define (stop-list-formlet
-         [in-stop1 #f]
-         [in-use-name-filter1? #t]
-         [in-name-filter1 ""])
-  (printf "** formlet in-stop1: ~v, in-use-name-filter1?: ~v, in-name-filter1: ~v~n" in-stop1 in-use-name-filter1? in-name-filter1)
-  (let* ([layout1 (list-layout (if in-use-name-filter1?
-                                   in-name-filter1
-                                   "") 0 100 0 100 0)]
+(define (stop-formlet state)
+  (printf "** formlet given state:~v~n" state)
+  (let* ([state1 (stop-formlet-state-list1 state)]
+         [current-stop1 (stop-list-state-stop state1)]
+         [layout1 (stop-list-state-layout state1)]
          [stops1 (filter-stops stops layout1)])
     (formlet
      (#%#
-      (h2 ,(if in-stop1
-               (stop-name in-stop1)
+      (h2 ,(if current-stop1
+               (stop-name current-stop1)
                "no stop selected"))
       (div ,{(multiselect-input stops1
                                 #:multiple? #f
@@ -54,40 +67,39 @@
                                 #:display (lambda (stop)
                                             (stop-name stop))
                                 #:selected? (lambda (stop)
-                                              (equal? stop in-stop1))) . => . stop1})
+                                              (equal? stop current-stop1))) . => . selected-stops1})
       (div ,{(cross (pure (lambda (x) (and x #t)))
-                    (checkbox "" in-use-name-filter1?)) . => . use-name-filter1?}
+                    (checkbox "" (stop-list-state-use-name-filter? state1))) . => . use-name-filter1?}
            "Name filter "
            ,{(to-string (default #"" (text-input
-                                      #:value (if in-name-filter1
-                                                  in-name-filter1
-                                                  "")))) . => . name-filter1})
+                                      #:value (list-layout-filter-expr (stop-list-state-layout state1))))) . => . name-filter1})
       (div ,{(input #:type "range") . => . min-lon}))
-     (values stop1 use-name-filter1? name-filter1 min-lon))))
+     (stop-formlet-state (stop-list-state (if (not (null? selected-stops1))
+                                              (car selected-stops1)
+                                              #f)
+                                          (list-layout name-filter1 0 100 0 100 0)
+                                          use-name-filter1? #f #f)
+                         null))))
+
+(define (bindings request)
+  (force (request-bindings/raw-promise request)))
 
 (define (has-bindings? request)
-  (not (null? (force (request-bindings/raw-promise request)))))
+  (not (null? (bindings request))))
 
 (define (render-stop-info-page request)
-  (printf "render request bindings: ~v~n" (force (request-bindings/raw-promise request)))
-  (define-values (stop1-in use-name-filter1? name-filter1 min-lon)
-    (with-handlers ([(lambda (e) #t) (lambda (e)
-                                       (printf "!! exception ~v~n" e)
-                                       (values #f #t #f #f))])
-      (formlet-process (stop-list-formlet) request)))
-  (define stop1 (if (and stop1-in (not (null? stop1-in)))
-                    (car stop1-in)
-                    #f))
-  (printf "render stop1: ~v, use-name-filter?: ~v, name-filter: ~v~n" stop1 use-name-filter1? name-filter1)
+  (printf "render request bindings: ~a~n" (bindings request))
+  (define new-state (if (has-bindings? request)
+                        (formlet-process (stop-formlet (web-cell-ref formlet-state)) request)
+                        default-stop-formlet-state))
+  (printf "render new state: ~a~n" new-state)
   (define (response-generator embed/url)
     (response/xexpr
      `(html
        (head (title "Stop Info"))
        (body (h1 "List of Stops")
              (form ([action ,(embed/url render-stop-info-page)])
-                   ,@(formlet-display (stop-list-formlet stop1
-                                                         use-name-filter1?
-                                                         name-filter1))
+                   ,@(formlet-display (stop-formlet new-state))
                    (p (input ([type "submit"]))))
              ))))
   (send/suspend/dispatch response-generator))

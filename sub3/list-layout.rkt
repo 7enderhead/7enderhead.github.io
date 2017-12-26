@@ -1,10 +1,11 @@
 #lang racket
 
 (require racket/struct)
+(require racket/serialize)
 (require "data-defs.rkt")
 (require "util.rkt")
 
-(struct list-layout (filter-expr min-lon max-lon min-lat max-lat sorting)
+(serializable-struct list-layout (filter-expr min-lon max-lon min-lat max-lat sorting)
   #:transparent
   #:methods gen:custom-write
   [(define write-proc
