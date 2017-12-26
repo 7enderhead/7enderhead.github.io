@@ -92,6 +92,7 @@
   (define new-state (if (has-bindings? request)
                         (formlet-process (stop-formlet (web-cell-ref formlet-state)) request)
                         default-stop-formlet-state))
+  (web-cell-shadow formlet-state new-state)
   (printf "render new state: ~a~n" new-state)
   (define (response-generator embed/url)
     (response/xexpr
