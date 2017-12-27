@@ -51,12 +51,48 @@
 (define (start request)
   (render-stop-info-page request))
 
+(define (stop-list-input stops current-stop)
+  (multiselect-input
+   stops
+   #:multiple? #f
+   #:attributes `((size ,(->string (info 'web-stop-list-size))))
+   #:display (lambda (stop)
+               (format "~a (~a / ~a)"
+                       (stop-name stop)
+                       (format-range (lon-range stop))
+                       (format-range (lat-range stop))))
+   #:selected? (lambda (stop)
+                 (equal? stop current-stop))))
+
+(define (checkbox-input checked?)
+  (cross (pure (lambda (x) (and x #t)))
+         (checkbox "" checked?)))
+
+(define (filter-input state)
+    (let ([layout (stop-list-state-layout state)])
+      (list-layout (if (stop-list-state-use-name-filter? state)
+                     (list-layout-filter-expr layout)
+                     "")
+                   (if (stop-list-state-use-lon-filter? state)
+                     (list-layout-min-lon layout)
+                     min-lon)
+                   (if (stop-list-state-use-lon-filter? state)
+                     (list-layout-max-lon layout)
+                     max-lon)
+                   (if (stop-list-state-use-lat-filter? state)
+                     (list-layout-min-lat layout)
+                     min-lat)
+                   (if (stop-list-state-use-lat-filter? state)
+                     (list-layout-max-lat layout)
+                     max-lat)
+                   0)))
+
 (define (stop-formlet state)
   (printf "** formlet given state:~v~n" state)
   (let* ([state1 (stop-formlet-state-list1 state)]
          [current-stop1 (stop-list-state-stop state1)]
          [layout1 (stop-list-state-layout state1)]
-         [stops1 (filter-stops stops layout1)])
+         [stops1 (filter-stops stops (filter-input state1))])
     (formlet
      (#%#
       (h2 ,(if current-stop1
@@ -66,24 +102,14 @@
                (format "(~a / ~a)"
                        (format-range (lon-range current-stop1))
                        (format-range (lat-range current-stop1)))
-               ""))
-      (div
-       ,{(multiselect-input
-          stops1
-          #:multiple? #f
-          #:attributes `((size ,(->string (info 'web-stop-list-size))))
-          #:display (lambda (stop)
-                      (format "~a (~a / ~a)"
-                              (stop-name stop)
-                              (format-range (lon-range stop))
-                              (format-range (lat-range stop))))
-          #:selected? (lambda (stop)
-                        (equal? stop current-stop1))) . => . selected-stops1})
-      (div ,{(cross (pure (lambda (x) (and x #t)))
-                    (checkbox "" (stop-list-state-use-name-filter? state1))) . => . use-name-filter1?}
+               "-"))
+      (div ,{(stop-list-input stops1 current-stop1) . => . selected-stops1})
+      (div ,{(checkbox-input (stop-list-state-use-name-filter? state1)) . => . use-name-filter1?}
            "Name filter "
            ,{(to-string (default #"" (text-input
-                                      #:value (list-layout-filter-expr (stop-list-state-layout state1))))) . => . name-filter1})
+                                      #:value (list-layout-filter-expr (stop-list-state-layout state1)))))
+             . => . name-filter1})
+
       (div
        "min. Lon. "
        ,{(~> (input #:type "number"
