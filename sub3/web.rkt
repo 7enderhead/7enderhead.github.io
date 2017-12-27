@@ -10,7 +10,11 @@
 (require web-server/formlets/input)
 (require web-server/formlets/lib)
 (require web-server/servlet/web-cells)
-(require "data-defs.rkt")
+(require (rename-in "data-defs.rkt"
+                    (min-lon def:min-lon)
+                    (max-lon def:max-lon)
+                    (min-lat def:min-lat)
+                    (max-lat def:max-lat)))
 (require "data-provider.rkt")
 (require "data-provider-factory.rkt")
 (require "list-layout.rkt")
@@ -28,15 +32,13 @@
                           (string<? (stop-name stop1)
                                     (stop-name stop2))))))
 
+(define min-lon (def:min-lon stops))
+(define max-lon (def:max-lon stops))
+(define min-lat (def:min-lat stops))
+(define max-lat (def:max-lat stops))
+
 (define default-stop-list-state
-  (stop-list-state #f
-                   (list-layout ""
-                                (min-lon stops)
-                                (max-lon stops)
-                                (min-lat stops)
-                                (max-lat stops)
-                                0)
-                   #t #f #f))
+  (stop-list-state #f (list-layout "" min-lon max-lon min-lat max-lat 0) #t #f #f))
 
 (define default-stop-formlet-state
   (stop-formlet-state default-stop-list-state
@@ -61,9 +63,7 @@
                "no stop selected"))
       (div ,{(multiselect-input stops1
                                 #:multiple? #f
-                                #:attributes (list
-                                              (list 'size
-                                                    (->string (info 'web-stop-list-size))))
+                                #:attributes `((size ,(->string (info 'web-stop-list-size))))
                                 #:display (lambda (stop)
                                             (stop-name stop))
                                 #:selected? (lambda (stop)
@@ -73,11 +73,22 @@
            "Name filter "
            ,{(to-string (default #"" (text-input
                                       #:value (list-layout-filter-expr (stop-list-state-layout state1))))) . => . name-filter1})
-      (div ,{(input #:type "range") . => . min-lon}))
+      (div
+       "min. Lon. "
+       ,{(~> (input #:type "number"
+                    #:attributes
+                    `((value ,(->string (list-layout-min-lon layout1)))
+                      (min ,(->string min-lon))
+                      (max ,(->string max-lon))
+                      (step "0.0000001")))
+             (default (string->bytes/utf-8 (->string min-lon)) _)
+             to-string
+             to-number)
+         . => . min-lon1}))
      (stop-formlet-state (stop-list-state (if (not (null? selected-stops1))
                                               (car selected-stops1)
                                               #f)
-                                          (list-layout name-filter1 0 100 0 100 0)
+                                          (list-layout name-filter1 min-lon1 100 0 100 0)
                                           use-name-filter1? #f #f)
                          null))))
 
