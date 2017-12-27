@@ -68,31 +68,47 @@
   (cross (pure (lambda (x) (and x #t)))
          (checkbox "" checked?)))
 
-(define (filter-input state)
-    (let ([layout (stop-list-state-layout state)])
-      (list-layout (if (stop-list-state-use-name-filter? state)
-                     (list-layout-filter-expr layout)
-                     "")
-                   (if (stop-list-state-use-lon-filter? state)
-                     (list-layout-min-lon layout)
-                     min-lon)
-                   (if (stop-list-state-use-lon-filter? state)
-                     (list-layout-max-lon layout)
-                     max-lon)
-                   (if (stop-list-state-use-lat-filter? state)
-                     (list-layout-min-lat layout)
-                     min-lat)
-                   (if (stop-list-state-use-lat-filter? state)
-                     (list-layout-max-lat layout)
-                     max-lat)
-                   0)))
+(define (default-text-input preset-value)
+  (to-string (default #"" (text-input
+                           #:value preset-value))))
+
+(define (number-input preset min max default-value)
+  (~> (input #:type "number"
+             #:attributes
+             `((value ,(->string preset))
+               (min ,(->string min))
+               (max ,(->string max))
+               (step "0.0000001")))
+      (default (string->bytes/utf-8 (->string default-value)) _)
+      to-string
+      to-number))
+
+(define (filter-defs state)
+  (let* ([layout (stop-list-state-layout state)]
+         [filter-layout (list-layout (if (stop-list-state-use-name-filter? state)
+                                         (list-layout-filter-expr layout)
+                                         "")
+                                     (if (stop-list-state-use-lon-filter? state)
+                                         (list-layout-min-lon layout)
+                                         min-lon)
+                                     (if (stop-list-state-use-lon-filter? state)
+                                         (list-layout-max-lon layout)
+                                         max-lon)
+                                     (if (stop-list-state-use-lat-filter? state)
+                                         (list-layout-min-lat layout)
+                                         min-lat)
+                                     (if (stop-list-state-use-lat-filter? state)
+                                         (list-layout-max-lat layout)
+                                         max-lat)
+                                     0)])
+    (printf "filter-defs ~a -> ~a~n" state filter-layout)
+    filter-layout))
 
 (define (stop-formlet state)
-  (printf "** formlet given state:~v~n" state)
   (let* ([state1 (stop-formlet-state-list1 state)]
          [current-stop1 (stop-list-state-stop state1)]
          [layout1 (stop-list-state-layout state1)]
-         [stops1 (filter-stops stops (filter-input state1))])
+         [stops1 (filter-stops stops (filter-defs state1))])
     (formlet
      (#%#
       (h2 ,(if current-stop1
@@ -105,28 +121,24 @@
                "-"))
       (div ,{(stop-list-input stops1 current-stop1) . => . selected-stops1})
       (div ,{(checkbox-input (stop-list-state-use-name-filter? state1)) . => . use-name-filter1?}
-           "Name filter "
-           ,{(to-string (default #"" (text-input
-                                      #:value (list-layout-filter-expr (stop-list-state-layout state1)))))
-             . => . name-filter1})
+           "Name filter"
+           ,{(default-text-input
+               (list-layout-filter-expr (stop-list-state-layout state1))) . => . name-filter1})
 
+      (div ,{(checkbox-input (stop-list-state-use-lon-filter? state1)) . => . use-lon-filter1?}
+           "Longitude filter")
       (div
        "min. Lon. "
-       ,{(~> (input #:type "number"
-                    #:attributes
-                    `((value ,(->string (list-layout-min-lon layout1)))
-                      (min ,(->string min-lon))
-                      (max ,(->string max-lon))
-                      (step "0.0000001")))
-             (default (string->bytes/utf-8 (->string min-lon)) _)
-             to-string
-             to-number)
+       ,{(number-input (list-layout-min-lon layout1)
+                       min-lon
+                       max-lon
+                       min-lon)
          . => . min-lon1}))
      (stop-formlet-state (stop-list-state (if (not (null? selected-stops1))
                                               (car selected-stops1)
                                               #f)
                                           (list-layout name-filter1 min-lon1 100 0 100 0)
-                                          use-name-filter1? #f #f)
+                                          use-name-filter1? use-lon-filter1? #f)
                          null))))
 
 (define (bindings request)
@@ -136,12 +148,10 @@
   (not (null? (bindings request))))
 
 (define (render-stop-info-page request)
-  (printf "render request bindings: ~a~n" (bindings request))
   (define new-state (if (has-bindings? request)
                         (formlet-process (stop-formlet (web-cell-ref formlet-state)) request)
                         default-stop-formlet-state))
   (web-cell-shadow formlet-state new-state)
-  (printf "render new state: ~a~n" new-state)
   (define (response-generator embed/url)
     (response/xexpr
      `(html
