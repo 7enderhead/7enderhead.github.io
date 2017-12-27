@@ -19,6 +19,7 @@
 (require "data-provider-factory.rkt")
 (require "list-layout.rkt")
 (require "stop-formlet-state.rkt")
+(require "util.rkt")
 
 ;; debug imports
 (require web-server/http/request-structs)
@@ -61,13 +62,23 @@
       (h2 ,(if current-stop1
                (stop-name current-stop1)
                "no stop selected"))
-      (div ,{(multiselect-input stops1
-                                #:multiple? #f
-                                #:attributes `((size ,(->string (info 'web-stop-list-size))))
-                                #:display (lambda (stop)
-                                            (stop-name stop))
-                                #:selected? (lambda (stop)
-                                              (equal? stop current-stop1))) . => . selected-stops1})
+      (h3 ,(if current-stop1
+               (format "(~a / ~a)"
+                       (format-range (lon-range current-stop1))
+                       (format-range (lat-range current-stop1)))
+               ""))
+      (div
+       ,{(multiselect-input
+          stops1
+          #:multiple? #f
+          #:attributes `((size ,(->string (info 'web-stop-list-size))))
+          #:display (lambda (stop)
+                      (format "~a (~a / ~a)"
+                              (stop-name stop)
+                              (format-range (lon-range stop))
+                              (format-range (lat-range stop))))
+          #:selected? (lambda (stop)
+                        (equal? stop current-stop1))) . => . selected-stops1})
       (div ,{(cross (pure (lambda (x) (and x #t)))
                     (checkbox "" (stop-list-state-use-name-filter? state1))) . => . use-name-filter1?}
            "Name filter "
