@@ -121,23 +121,30 @@
                "-"))
       (div ,{(stop-list-input stops1 current-stop1) . => . selected-stops1})
       (div ,{(checkbox-input (stop-list-state-use-name-filter? state1)) . => . use-name-filter1?}
-           "Name filter"
+           "Name filter "
            ,{(default-text-input
                (list-layout-filter-expr (stop-list-state-layout state1))) . => . name-filter1})
 
       (div ,{(checkbox-input (stop-list-state-use-lon-filter? state1)) . => . use-lon-filter1?}
            "Longitude filter")
       (div
-       "min. Lon. "
+       "min. Lon.: "
        ,{(number-input (list-layout-min-lon layout1)
                        min-lon
                        max-lon
                        min-lon)
-         . => . min-lon1}))
+         . => . min-lon1})
+      (div
+       "max. Lon.: "
+       ,{(number-input (list-layout-max-lon layout1)
+                       min-lon
+                       max-lon
+                       max-lon)
+         . => . max-lon1}))
      (stop-formlet-state (stop-list-state (if (not (null? selected-stops1))
                                               (car selected-stops1)
                                               #f)
-                                          (list-layout name-filter1 min-lon1 100 0 100 0)
+                                          (list-layout name-filter1 min-lon1 max-lon1 0 100 0)
                                           use-name-filter1? use-lon-filter1? #f)
                          null))))
 
