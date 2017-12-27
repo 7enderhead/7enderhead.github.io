@@ -140,12 +140,30 @@
                        min-lon
                        max-lon
                        max-lon)
-         . => . max-lon1}))
+         . => . max-lon1})
+
+     (div ,{(checkbox-input (stop-list-state-use-lat-filter? state1)) . => . use-lat-filter1?}
+           "Latitude filter")
+      (div
+       "min. Lat.: "
+       ,{(number-input (list-layout-min-lat layout1)
+                       min-lat
+                       max-lat
+                       min-lat)
+         . => . min-lat1})
+      (div
+       "max. Lat.: "
+       ,{(number-input (list-layout-max-lat layout1)
+                       min-lat
+                       max-lat
+                       max-lat)
+         . => . max-lat1}))
+     
      (stop-formlet-state (stop-list-state (if (not (null? selected-stops1))
                                               (car selected-stops1)
                                               #f)
-                                          (list-layout name-filter1 min-lon1 max-lon1 0 100 0)
-                                          use-name-filter1? use-lon-filter1? #f)
+                                          (list-layout name-filter1 min-lon1 max-lon1 min-lat1 max-lat1 0)
+                                          use-name-filter1? use-lon-filter1? use-lat-filter1?)
                          null))))
 
 (define (bindings request)
