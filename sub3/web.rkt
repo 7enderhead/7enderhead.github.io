@@ -222,19 +222,24 @@
                        request)
       default-stop-formlet-state))
 
+(define stylesheet-link `(link ((rel "stylesheet")
+                                (href "/styles.css")
+                                (type "text/css"))))
+
 (define (create-stop-info-response state embed/url)
   (response/xexpr
    `(html
      (head (title "route21 - Routes Between Stops")
-           (link ((rel "stylesheet")
-                  (href "/styles.css")
-                  (type "text/css"))))
+           ,stylesheet-link)
      (body (h1 "Routes Between Stops")
-           (div
+           (fieldset
+            (legend "Stop Selection")
             (form ([action ,(embed/url render-stop-info-page)])
                   ,@(formlet-display (stop-formlet state))
                   (p (input ([type "submit"])))))
-            ,(route-table state)))))
+           (fieldset
+            (legend "Routes for Selected Stops")
+            ,(route-table state))))))
 
 (define (route-table state)
   (let* ([stop1 (stop-list-state-stop (stop-formlet-state-list1 state))]
