@@ -246,7 +246,6 @@
          [stop2 (stop-list-state-stop (stop-formlet-state-list2 state))]
          [routes (routes-for-stops stop1 stop2)]
          [route-entries (route-table-entries routes)])
-    (printf "route-entries: ~a~n" route-entries)
     `(table ,@route-entries)))
 
 (define (render-stop-info-page request)

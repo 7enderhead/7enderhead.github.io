@@ -1,11 +1,15 @@
+body {
+  font-family: 'Ubuntu';font-size: 18px;
+}
+
 .column {
-	float: left;
-	width: 49%;
+  float: left;
+  width: 49%;
 }
 
 /* Clear floats after the columns */
 .row:after {
-	content: "";
-	display: table;
-	clear: both;
+  content: "";
+  display: table;
+  clear: both;
 }
