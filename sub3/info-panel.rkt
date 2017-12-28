@@ -103,22 +103,8 @@ All work is done by a dedicated @racket[info-panel%] class.
                       (not (equal? compound-stop1 compound-stop2)))
              (let* ([stops1 (constituents compound-stop1)]
                     [stops2 (constituents compound-stop2)]
-                    [routes (routes-for-all-stop-pairs stops1 stops2)])
-               (send route-display show-routes routes)))))
-
-       <routes-for-all-stop-pairs>]
-
-@chunk[<routes-for-all-stop-pairs>
-       (define (routes-for-all-stop-pairs stops1 stops2)
-         (~> (for*/list ([stop1 stops1]
-                         [stop2 stops2])
-               (let* ([routes1 (send provider routes-for-stop (stop-id stop1))]
-                      [routes2 (send provider routes-for-stop (stop-id stop2))]
-                      [common-routes (set-intersect routes1 routes2)])
-                 common-routes))
-             flatten
-             remove-duplicates
-             sort-routes))]
+                    [routes (routes-for-all-stop-pairs provider stops1 stops2)])
+               (send route-display show-routes routes)))))]
 
 @section{Code Structure}
 

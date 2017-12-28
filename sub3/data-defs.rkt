@@ -193,7 +193,18 @@ Allows to treat single and multiple stops with the same name in a homogenous way
          (sort routes
                (lambda (route1 route2)
                  (string<? (route-compound-key route1)
-                           (route-compound-key route2)))))]
+                           (route-compound-key route2)))))
+
+       (define (routes-for-all-stop-pairs provider stops1 stops2)
+         (~> (for*/list ([stop1 stops1]
+                         [stop2 stops2])
+               (let* ([routes1 (send provider routes-for-stop (stop-id stop1))]
+                      [routes2 (send provider routes-for-stop (stop-id stop2))]
+                      [common-routes (set-intersect routes1 routes2)])
+                 common-routes))
+             flatten
+             remove-duplicates
+             sort-routes))]
 
 @section{File Structure}
 
