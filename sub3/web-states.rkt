@@ -3,6 +3,25 @@
 (require racket/struct)
 (require racket/serialize)
 
+(serializable-struct web-state (stops route food)
+                     #:transparent
+                     #:methods gen:custom-write
+                     [(define write-proc
+                        (make-constructor-style-printer
+                         (lambda (s) 'web-state)
+                         (lambda (s) (list "stops" (web-state-stops s)
+                                           "route" (web-state-route s)
+                                           "food" (web-state-food s)))))])
+
+(serializable-struct stops-state (list1 list2)
+                     #:transparent
+                     #:methods gen:custom-write
+                     [(define write-proc
+                        (make-constructor-style-printer
+                         (lambda (s) 'stops-state)
+                         (lambda (s) (list "state1" (stops-state-list1 s)
+                                           "state2" (stops-state-list2 s)))))])
+
 (serializable-struct stop-list-state (stop
                                       layout
                                       use-name-filter?
@@ -19,13 +38,6 @@
                                            "use lon filter?" (stop-list-state-use-lon-filter? s)
                                            "use lat filter?" (stop-list-state-use-lat-filter? s)))))])
 
-(serializable-struct stop-formlet-state (list1 list2)
-                     #:transparent
-                     #:methods gen:custom-write
-                     [(define write-proc
-                        (make-constructor-style-printer
-                         (lambda (s) 'stop-formlet-state)
-                         (lambda (s) (list "state1" (stop-formlet-state-list1 s)
-                                           "state2" (stop-formlet-state-list2 s)))))])
+
 
 (provide (all-defined-out))

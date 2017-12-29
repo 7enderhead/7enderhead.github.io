@@ -43,12 +43,16 @@
 (define default-stop-list-state
   (stop-list-state #f (list-layout "" min-lon max-lon min-lat max-lat 0) #t #f #f))
 
-(define default-stop-formlet-state
-  (stop-formlet-state default-stop-list-state
-                      default-stop-list-state))
+(define default-stops-state
+  (stops-state default-stop-list-state
+               default-stop-list-state))
 
-(define formlet-state
-  (make-web-cell default-stop-formlet-state))
+(define default-global-state (web-state default-stops-state
+                                        null
+                                        null))
+
+(define global-state
+  (make-web-cell default-global-state))
 
 (define (start request)
   (render-stop-info-page request))
@@ -159,14 +163,14 @@
                       use-name-filter? use-lon-filter? use-lat-filter?))))
 
 (define (stop-formlet state)
-  (let* ([state1 (stop-formlet-state-list1 state)]
-         [state2 (stop-formlet-state-list2 state)])
+  (let* ([state1 (stops-state-list1 state)]
+         [state2 (stops-state-list2 state)])
     (formlet
      (#%#
       (div ([class "row"])
            ,{(stop-list-formlet state1) . => . list-state1}
            ,{(stop-list-formlet state2) . => . list-state2}))
-     (stop-formlet-state list-state1 list-state2))))
+     (stops-state list-state1 list-state2))))
 
 (define (bindings request)
   (force (request-bindings/raw-promise request)))
@@ -174,11 +178,11 @@
 (define (has-bindings? request)
   (not (null? (bindings request))))
 
-(define (state-from-request request)
+(define (stops-state-from-request request)
   (if (has-bindings? request)
-      (formlet-process (stop-formlet (web-cell-ref formlet-state))
+      (formlet-process (stop-formlet (stops (web-cell-ref global-state)))
                        request)
-      default-stop-formlet-state))
+      default-stops-state))
 
 (define stylesheet-link `(link ((rel "stylesheet")
                                 (href "/styles.css")
@@ -200,17 +204,17 @@
             ,(route-table state))))))
 
 (define (route-table state)
-  (let* ([stop1 (stop-list-state-stop (stop-formlet-state-list1 state))]
-         [stop2 (stop-list-state-stop (stop-formlet-state-list2 state))]
+  (let* ([stop1 (stop-list-state-stop (stops-state-list1 state))]
+         [stop2 (stop-list-state-stop (stops-state-list2 state))]
          [routes (routes-for-stops stop1 stop2)]
          [route-entries (route-table-entries routes)])
     `(table ,@route-entries)))
 
 (define (render-stop-info-page request)
-  (let* ([new-state (state-from-request request)]
+  (let* ([stops-state (stops-state-from-request request)]
          [response-generator (lambda (embed/url)
-                               (create-stop-info-response new-state embed/url))])
-    (web-cell-shadow formlet-state new-state)
+                               (create-stop-info-response stops-state embed/url))])
+    (web-cell-shadow global-state (struct-copy global-state [stops stops-state]))
     (send/suspend/dispatch response-generator)))
 
 (define (routes-for-stops compound-stop1 compound-stop2)
