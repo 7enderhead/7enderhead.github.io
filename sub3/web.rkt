@@ -106,109 +106,67 @@
     #;(printf "filter-defs ~a -> ~a~n" state filter-layout)
     filter-layout))
 
+(define (stop-list-formlet state)
+  (let* ([current-stop (stop-list-state-stop state)]
+         [layout (stop-list-state-layout state)]
+         [stops (filter-stops stops (filter-defs state))])
+    (formlet
+     (#%#
+      (div ([class "column"])
+           (h2 ,(if current-stop
+                    (stop-name current-stop)
+                    "no stop selected"))
+           (h3 ,(if current-stop
+                    (format "(~a / ~a)"
+                            (format-range (lon-range current-stop))
+                            (format-range (lat-range current-stop)))
+                    "-"))
+           (div ,{(stop-list-input stops current-stop) . => . selected-stops})
+           (div ,{(checkbox-input (stop-list-state-use-name-filter? state))
+                  . => . use-name-filter?}
+                "Name filter "
+                ,{(default-text-input
+                    (list-layout-filter-expr (stop-list-state-layout state)))
+                  . => . name-filter})
+
+           (div ,{(checkbox-input (stop-list-state-use-lon-filter? state))
+                  . => . use-lon-filter?}
+                "Longitude filter")
+           (div
+            "min. Lon.: "
+            ,{(number-input (list-layout-min-lon layout) min-lon max-lon min-lon)
+              . => . min-lon})
+           (div
+            "max. Lon.: "
+            ,{(number-input (list-layout-max-lon layout) min-lon max-lon max-lon)
+              . => . max-lon})
+
+           (div ,{(checkbox-input (stop-list-state-use-lat-filter? state)) . => . use-lat-filter?}
+                "Latitude filter")
+           (div
+            "min. Lat.: "
+            ,{(number-input (list-layout-min-lat layout) min-lat max-lat min-lat)
+              . => . min-lat})
+           (div
+            "max. Lat.: "
+            ,{(number-input (list-layout-max-lat layout) min-lat max-lat max-lat)
+              . => . max-lat})))
+     
+     (stop-list-state (if (not (null? selected-stops))
+                          (car selected-stops)
+                          #f)
+                      (list-layout name-filter min-lon max-lon min-lat max-lat 0)
+                      use-name-filter? use-lon-filter? use-lat-filter?))))
+
 (define (stop-formlet state)
   (let* ([state1 (stop-formlet-state-list1 state)]
-         [current-stop1 (stop-list-state-stop state1)]
-         [layout1 (stop-list-state-layout state1)]
-         [stops1 (filter-stops stops (filter-defs state1))]
-         [state2 (stop-formlet-state-list2 state)]
-         [current-stop2 (stop-list-state-stop state2)]
-         [layout2 (stop-list-state-layout state2)]
-         [stops2 (filter-stops stops (filter-defs state2))])
+         [state2 (stop-formlet-state-list2 state)])
     (formlet
      (#%#
       (div ([class "row"])
-           (div ([class "column"])
-                (h2 ,(if current-stop1
-                         (stop-name current-stop1)
-                         "no stop selected"))
-                (h3 ,(if current-stop1
-                         (format "(~a / ~a)"
-                                 (format-range (lon-range current-stop1))
-                                 (format-range (lat-range current-stop1)))
-                         "-"))
-                (div ,{(stop-list-input stops1 current-stop1) . => . selected-stops1})
-                (div ,{(checkbox-input (stop-list-state-use-name-filter? state1))
-                       . => . use-name-filter1?}
-                     "Name filter "
-                     ,{(default-text-input
-                         (list-layout-filter-expr (stop-list-state-layout state1)))
-                       . => . name-filter1})
-
-                (div ,{(checkbox-input (stop-list-state-use-lon-filter? state1))
-                       . => . use-lon-filter1?}
-                     "Longitude filter")
-                (div
-                 "min. Lon.: "
-                 ,{(number-input (list-layout-min-lon layout1) min-lon max-lon min-lon)
-                   . => . min-lon1})
-                (div
-                 "max. Lon.: "
-                 ,{(number-input (list-layout-max-lon layout1) min-lon max-lon max-lon)
-                   . => . max-lon1})
-
-                (div ,{(checkbox-input (stop-list-state-use-lat-filter? state1)) . => . use-lat-filter1?}
-                     "Latitude filter")
-                (div
-                 "min. Lat.: "
-                 ,{(number-input (list-layout-min-lat layout1) min-lat max-lat min-lat)
-                   . => . min-lat1})
-                (div
-                 "max. Lat.: "
-                 ,{(number-input (list-layout-max-lat layout1) min-lat max-lat max-lat)
-                   . => . max-lat1}))
-
-           (div ([class "column"])
-                (h2 ,(if current-stop2
-                         (stop-name current-stop2)
-                         "no stop selected"))
-                (h3 ,(if current-stop2
-                         (format "(~a / ~a)"
-                                 (format-range (lon-range current-stop2))
-                                 (format-range (lat-range current-stop2)))
-                         "-"))
-                (div ,{(stop-list-input stops2 current-stop2) . => . selected-stops2})
-                (div ,{(checkbox-input (stop-list-state-use-name-filter? state2))
-                       . => . use-name-filter2?}
-                     "Name filter "
-                     ,{(default-text-input
-                         (list-layout-filter-expr (stop-list-state-layout state2)))
-                       . => . name-filter2})
-
-                (div ,{(checkbox-input (stop-list-state-use-lon-filter? state2))
-                       . => . use-lon-filter2?}
-                     "Longitude filter")
-                (div
-                 "min. Lon.: "
-                 ,{(number-input (list-layout-min-lon layout2) min-lon max-lon min-lon)
-                   . => . min-lon2})
-                (div
-                 "max. Lon.: "
-                 ,{(number-input (list-layout-max-lon layout2) min-lon max-lon max-lon)
-                   . => . max-lon2})
-
-                (div ,{(checkbox-input (stop-list-state-use-lat-filter? state2)) . => . use-lat-filter2?}
-                     "Latitude filter")
-                (div
-                 "min. Lat.: "
-                 ,{(number-input (list-layout-min-lat layout2) min-lat max-lat min-lat)
-                   . => . min-lat2})
-                (div
-                 "max. Lat.: "
-                 ,{(number-input (list-layout-max-lat layout2) min-lat max-lat max-lat)
-                   . => . max-lat2}))))
-     
-     (stop-formlet-state
-      (stop-list-state (if (not (null? selected-stops1))
-                           (car selected-stops1)
-                           #f)
-                       (list-layout name-filter1 min-lon1 max-lon1 min-lat1 max-lat1 0)
-                       use-name-filter1? use-lon-filter1? use-lat-filter1?)
-      (stop-list-state (if (not (null? selected-stops2))
-                           (car selected-stops2)
-                           #f)
-                       (list-layout name-filter2 min-lon2 max-lon2 min-lat2 max-lat2 0)
-                       use-name-filter2? use-lon-filter2? use-lat-filter2?)))))
+           ,{(stop-list-formlet state1) . => . list-state1}
+           ,{(stop-list-formlet state2) . => . list-state2}))
+     (stop-formlet-state list-state1 list-state2))))
 
 (define (bindings request)
   (force (request-bindings/raw-promise request)))
