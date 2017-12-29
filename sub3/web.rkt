@@ -280,12 +280,15 @@
 (define tab-info (vector (cons "Stops" render-stop-info-page)
                          (cons "Route" render-route-edit-page)))
 
+(define (format-tab-header header)
+  (format " ~a " header))
+
 (define (tabbing tab-info selected-index embed/url)
   `(ul
     ,@(for/list ([index (in-naturals)]
                  [tab tab-info])
         `(li ([style "display:inline"])
              ,(if (= index selected-index)
-                  (car tab)
+                  (format-tab-header (car tab))
                   `(a ((href ,(embed/url (cdr tab))))
-                      ,(car tab)))))))
+                      ,(format-tab-header (car tab))))))))
