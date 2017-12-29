@@ -47,8 +47,11 @@
   (stops-state default-stop-list-state
                default-stop-list-state))
 
+(define default-route-state
+  (route-state "" "" "" "" default-stop-list-state null))
+
 (define default-global-state (web-state default-stops-state
-                                        null
+                                        default-route-state
                                         null))
 
 (define global-state
@@ -74,18 +77,18 @@
   (cross (pure (lambda (x) (and x #t)))
          (checkbox "" checked?)))
 
-(define (default-text-input preset-value)
+(define (preset-text-input preset-value)
   (to-string (default #"" (text-input
                            #:value preset-value))))
 
-(define (number-input preset min max default-value)
+(define (number-input preset min max preset-value)
   (~> (input #:type "number"
              #:attributes
              `((value ,(->string preset))
                (min ,(->string min))
                (max ,(->string max))
                (step "0.0000001")))
-      (default (string->bytes/utf-8 (->string default-value)) _)
+      (default (string->bytes/utf-8 (->string preset-value)) _)
       to-string
       to-number))
 
@@ -110,6 +113,16 @@
     #;(printf "filter-defs ~a -> ~a~n" state filter-layout)
     filter-layout))
 
+(define (route-formlet state)
+  (let* ([state state])
+    (formlet
+     (#%#
+      (div ([class "row"])
+           ,{(preset-text-input (route-state-number state)) . => . number})
+      (div ([class "row"])
+           ,{(stop-list-formlet (route-state-list state)) . => . list-state}))
+     (route-state number "" "" "" list-state null))))
+
 (define (stop-list-formlet state)
   (let* ([current-stop (stop-list-state-stop state)]
          [layout (stop-list-state-layout state)]
@@ -129,8 +142,8 @@
            (div ,{(checkbox-input (stop-list-state-use-name-filter? state))
                   . => . use-name-filter?}
                 "Name filter "
-                ,{(default-text-input
-                    (list-layout-filter-expr (stop-list-state-layout state)))
+                ,{(preset-text-input
+                   (list-layout-filter-expr (stop-list-state-layout state)))
                   . => . name-filter})
 
            (div ,{(checkbox-input (stop-list-state-use-lon-filter? state))
@@ -178,9 +191,15 @@
 (define (has-bindings? request)
   (not (null? (bindings request))))
 
+(define (route-state-from-request request)
+  (if (has-bindings? request)
+      (formlet-process (route-formlet (web-state-route (web-cell-ref global-state)))
+                       request)
+      default-route-state))
+
 (define (stops-state-from-request request)
   (if (has-bindings? request)
-      (formlet-process (stop-formlet (stops (web-cell-ref global-state)))
+      (formlet-process (stop-formlet (web-state-stops (web-cell-ref global-state)))
                        request)
       default-stops-state))
 
@@ -193,15 +212,37 @@
    `(html
      (head (title "route21 - Routes Between Stops")
            ,stylesheet-link)
-     (body (h1 "Routes Between Stops")
-           (fieldset
-            (legend "Stop Selection")
-            (form ([action ,(embed/url render-stop-info-page)])
-                  ,@(formlet-display (stop-formlet state))
-                  (p (input ([type "submit"])))))
-           (fieldset
-            (legend "Routes for Selected Stops")
-            ,(route-table state))))))
+     (body
+      ,(tabbing tab-info 0 embed/url)
+      (fieldset
+       (legend "Stop Selection")
+       (form ([action ,(embed/url render-stop-info-page)])
+             ,@(formlet-display (stop-formlet state))
+             (p (input ([type "submit"])))))
+      (fieldset
+       (legend "Routes for Selected Stops")
+       ,(route-table state))))))
+
+(define (create-route-edit-response state embed/url)
+  (response/xexpr
+   `(html
+     (head (title "route21 - Routes Between Stops")
+           ,stylesheet-link)
+     (body
+      ,(tabbing tab-info 1 embed/url)
+      (form ([action ,(embed/url render-route-edit-page)])
+            ,@(formlet-display (route-formlet state))
+            (p (input ([type "submit"]))))))))
+
+(define (render-route-edit-page request)
+  (let* ([route-state (route-state-from-request request)]
+         [response-generator (lambda (embed/url)
+                               (create-route-edit-response route-state embed/url))])
+    (web-cell-shadow global-state
+                     (struct-copy web-state
+                                  (web-cell-ref global-state)
+                                  [route route-state]))
+    (send/suspend/dispatch response-generator)))
 
 (define (route-table state)
   (let* ([stop1 (stop-list-state-stop (stops-state-list1 state))]
@@ -214,7 +255,10 @@
   (let* ([stops-state (stops-state-from-request request)]
          [response-generator (lambda (embed/url)
                                (create-stop-info-response stops-state embed/url))])
-    (web-cell-shadow global-state (struct-copy global-state [stops stops-state]))
+    (web-cell-shadow global-state
+                     (struct-copy web-state
+                                  (web-cell-ref global-state)
+                                  [stops stops-state]))
     (send/suspend/dispatch response-generator)))
 
 (define (routes-for-stops compound-stop1 compound-stop2)
@@ -232,3 +276,16 @@
          (td ,(route-number route))
          (td ,(route-start route))
          (td ,(route-end route)))))
+
+(define tab-info (vector (cons "Stops" render-stop-info-page)
+                         (cons "Route" render-route-edit-page)))
+
+(define (tabbing tab-info selected-index embed/url)
+  `(ul
+    ,@(for/list ([index (in-naturals)]
+                 [tab tab-info])
+        `(li ([style "display:inline"])
+             ,(if (= index selected-index)
+                  (car tab)
+                  `(a ((href ,(embed/url (cdr tab))))
+                      ,(car tab)))))))
