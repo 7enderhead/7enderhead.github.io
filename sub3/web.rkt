@@ -115,7 +115,6 @@
 
 (define (route-formlet state embed/url)
   (let* ([current-stops (route-state-stops state)])
-    (printf "route formlet current stops: ~a~n" current-stops)
     (formlet
      (#%#
       (form
@@ -139,22 +138,13 @@
        (div
         ([class "row"])
         (div ([class "three-column-outer"])
-             ,{(stop-list-formlet (route-state-list state)) . => . list-state}
+             (p ,{(stop-list-formlet (route-state-list state)) . => . list-state})
              (p ,{(submit "Filter") . => . submit-filter}))
         (div ([class "three-column-inner"])
              (p ,{(submit "Add Stop ->") . => . submit-add-stop})
              (p ,{(submit "<- Remove Stop") . => . submit-remove-stop}))
         (div ([class "three-column-outer"])
-             ,{(multiselect-input
-                current-stops
-                #:multiple? #f
-                #:attributes `((size ,(->string (info 'web-stop-list-size))))
-                #:display (λ (stop)
-                            (format "~a (~a / ~a)"
-                                    (stop-name stop)
-                                    (format-range (lon-range stop))
-                                    (format-range (lat-range stop)))))
-               . => . selected-new-stops}))
+             ,{(stop-list-input current-stops #f) . => . selected-new-stops}))
        (p ,{(submit "Create New Route") . => . submit-create-route})))
      (let* ([submit-type (cond
                            (submit-filter "filter")
