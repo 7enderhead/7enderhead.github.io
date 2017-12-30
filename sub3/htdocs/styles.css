@@ -16,6 +16,7 @@ body {
 .three-column-inner {
   float: left;
   width: 20%;
+  vertical-align: middle;
 }
 
 /* Clear floats after the columns */
