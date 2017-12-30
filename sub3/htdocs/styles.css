@@ -1,10 +1,21 @@
 body {
-  font-family: 'Ubuntu';font-size: 18px;
+  font-family: 'Ubuntu';
+  font-size: 18px;
 }
 
 .column {
   float: left;
   width: 49%;
+}
+
+.three-column-outer {
+  float: left;
+  width: 40%;
+}
+
+.three-column-inner {
+  float: left;
+  width: 20%;
 }
 
 /* Clear floats after the columns */

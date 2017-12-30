@@ -47,7 +47,7 @@
  #:methods gen:custom-write
  [(define write-proc
     (make-constructor-style-printer
-     (lambda (s) route-state)
+     (lambda (s) 'route-state)
      (lambda (s) (list "number" (route-state-number s)
                        "type" (route-state-type s)
                        "start" (route-state-start s)
