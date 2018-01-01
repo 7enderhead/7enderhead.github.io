@@ -48,7 +48,7 @@
                default-stop-list-state))
 
 (define default-route-state
-  (route-state "" "Bus" "" "" default-stop-list-state (set) ""))
+  (route-state "" "Bus" "" "" default-stop-list-state (set) "" '(data-missing stop-number)))
 
 (define default-global-state (web-state default-stops-state
                                         default-route-state
@@ -113,8 +113,15 @@
                                      0)])
     filter-layout))
 
-(define (route-formlet state embed/url)
-  (let* ([current-stops (route-state-stops state)])
+(define (contains? list x)
+  (if (findf (λ (element) (equal? element x)) list)
+      #t
+      #f))
+
+(define (route-formlet state embed/url [display-call #t])
+  (let* ([current-stops (route-state-stops state)]
+         [messages (route-state-messages state)])
+    (printf "formlet (display call: ~a) messages: ~a~n" display-call messages)
     (formlet
      (#%#
       (form
@@ -135,6 +142,10 @@
         (div ([class "column"])
              "End: "
              ,{(preset-text-input (route-state-end state)) . => . end}))
+       ,(if (contains? messages 'data-missing)
+            `(div ([class "row"])
+                  (p "Please enter data for Number, Start and End."))
+            "")
        (div
         ([class "row"])
         (div ([class "three-column-outer"])
@@ -163,7 +174,7 @@
                                           (set-remove current-stops
                                                       (first selected-new-stops))
                                           current-stops)])])
-       (route-state number type start end list-state stops submit-type)))))
+       (route-state number type start end list-state stops submit-type messages)))))
 
 (define (stop-list-formlet state)
   (let* ([current-stop (stop-list-state-stop state)]
@@ -236,7 +247,8 @@
 (define (route-state-from-request request)
   (if (has-bindings? request)
       (formlet-process (route-formlet (web-state-route (get-global-state))
-                                      (λ (x) ""))
+                                      (λ (x) "")
+                                      #f)
                        request)
       (web-state-route (get-global-state))))
 
@@ -275,13 +287,41 @@
       ,(tabbing tab-info 1 embed/url)
       ,@(formlet-display (route-formlet state embed/url))))))
 
+(define (process-route-submission state)
+  (let* ([number (route-state-number state)]
+         [type (route-state-type state)]
+         [start (route-state-start state)]
+         [end (route-state-end state)]
+         [data (list number type start end)]
+         [all-data-given? (for/and ([datum data])
+                            (non-empty-string? datum))]
+         [new-route (route 0 number type start end)]
+         [already-exists? (send provider route-exists? new-route)]
+         [stops (route-state-stops state)]
+         [stop-number-ok? (>= (set-count stops) 2)])
+    (printf "all-data-given? ~a, already-exists? ~a, stop-number-ok? ~a ~n" all-data-given? already-exists? stop-number-ok?)
+    (when (and all-data-given? stop-number-ok? (not already-exists?)
+               (equal? "create-route" (route-state-submit-type state)))
+      (begin
+        (printf "inserting new route ~a with stops ~a~n" new-route (set-map stops stop-id))
+        #;(send provider insert-route new-route (set-map stops stop-id))
+        (route-state-messages state)))
+    (filter (λ (x) (not (void? x)))
+            (list (unless all-data-given? 'data-missing)
+                  (unless stop-number-ok? 'stop-number)
+                  (when already-exists? 'exists)))))
+
 (define (render-route-edit-page request)
-  (let* ([route-state (route-state-from-request request)]
-         [response-generator (lambda (embed/url)
-                               (create-route-edit-response route-state embed/url))])
-    (set-global-state (struct-copy web-state
-                                   (get-global-state)
-                                   [route route-state]))
+  (let* ([state (route-state-from-request request)]
+         [new-messages (process-route-submission state)]
+         [new-state (struct-copy route-state state [messages new-messages])]
+         [response-generator (λ (embed/url)
+                               (create-route-edit-response new-state embed/url))]
+         [new-global-state (struct-copy web-state
+                                        (get-global-state)
+                                        [route new-state])])
+    (printf "state: ~a, new route messages: ~a, new route state ~a~n" state new-messages new-state)
+    (set-global-state new-global-state)
     (send/suspend/dispatch response-generator)))
 
 (define (route-table state)
@@ -293,7 +333,7 @@
 
 (define (set-global-state new-state)
   (web-cell-shadow global-state new-state)
-  #;(printf "new global state:~n~a~n" new-state))
+  (printf "new global state:~n~a~n" new-state))
 
 (define (get-global-state)
   (web-cell-ref global-state))

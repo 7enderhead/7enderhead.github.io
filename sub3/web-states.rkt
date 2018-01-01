@@ -42,7 +42,7 @@
                        "use lat filter?" (stop-list-state-use-lat-filter? s)))))])
 
 (serializable-struct
- route-state (number type start end list stops submit-type)
+ route-state (number type start end list stops submit-type messages)
  #:transparent
  #:methods gen:custom-write
  [(define write-proc
@@ -54,6 +54,7 @@
                        "end" (route-state-end s)
                        "list" (route-state-list s)
                        "stops" (route-state-stops s)
-                       "submit-type" (route-state-submit-type s)))))])
+                       "submit-type" (route-state-submit-type s)
+                       "messages" (route-state-messages s)))))])
 
 (provide (all-defined-out))
