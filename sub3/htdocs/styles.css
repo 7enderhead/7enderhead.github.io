@@ -1,0 +1,27 @@
+body {
+  font-family: 'Ubuntu';
+  font-size: 18px;
+}
+
+.column {
+  float: left;
+  width: 49%;
+}
+
+.three-column-outer {
+  float: left;
+  width: 40%;
+}
+
+.three-column-inner {
+  float: left;
+  width: 20%;
+  vertical-align: middle;
+}
+
+/* Clear floats after the columns */
+.row:after {
+  content: "";
+  display: table;
+  clear: both;
+}
