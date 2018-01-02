@@ -368,8 +368,8 @@
          (td ,(route-start route))
          (td ,(route-end route)))))
 
-(define tab-info (vector (cons "Stops" render-stop-info-page)
-                         (cons "Route" render-route-edit-page)))
+(define tab-info (vector (cons "Routes Between Stops" render-stop-info-page)
+                         (cons "New Route Creation" render-route-edit-page)))
 
 (define (format-tab-header header)
   (format " ~a " header))
