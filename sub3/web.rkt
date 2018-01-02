@@ -118,7 +118,7 @@
       #t
       #f))
 
-(define (route-formlet state embed/url)
+(define (route-formlet state [embed/url (λ (x) "")])
   (let* ([current-stops (route-state-stops state)]
          [messages (route-state-messages state)])
     (formlet
@@ -189,45 +189,44 @@
          [stops (filter-stops stops (filter-defs state))])
     (formlet
      (#%#
-      (div ([class "column"])
-           (h2 ,(if current-stop
-                    (stop-name current-stop)
-                    "no stop selected"))
-           (h3 ,(if current-stop
-                    (format "(~a / ~a)"
-                            (format-range (lon-range current-stop))
-                            (format-range (lat-range current-stop)))
-                    "-"))
-           (div ,{(stop-list-input stops current-stop) . => . selected-stops})
-           (div ,{(checkbox-input (stop-list-state-use-name-filter? state))
-                  . => . use-name-filter?}
-                "Name filter "
-                ,{(preset-text-input
-                   (list-layout-filter-expr (stop-list-state-layout state)))
-                  . => . name-filter})
+      (h2 ,(if current-stop
+               (stop-name current-stop)
+               "no stop selected"))
+      (h3 ,(if current-stop
+               (format "(~a / ~a)"
+                       (format-range (lon-range current-stop))
+                       (format-range (lat-range current-stop)))
+               "-"))
+      (div ,{(stop-list-input stops current-stop) . => . selected-stops})
+      (div ,{(checkbox-input (stop-list-state-use-name-filter? state))
+             . => . use-name-filter?}
+           "Name filter "
+           ,{(preset-text-input
+              (list-layout-filter-expr (stop-list-state-layout state)))
+             . => . name-filter})
 
-           (div ,{(checkbox-input (stop-list-state-use-lon-filter? state))
-                  . => . use-lon-filter?}
-                "Longitude filter")
-           (div
-            "min. Lon.: "
-            ,{(number-input (list-layout-min-lon layout) min-lon max-lon min-lon)
-              . => . min-lon})
-           (div
-            "max. Lon.: "
-            ,{(number-input (list-layout-max-lon layout) min-lon max-lon max-lon)
-              . => . max-lon})
+      (div ,{(checkbox-input (stop-list-state-use-lon-filter? state))
+             . => . use-lon-filter?}
+           "Longitude filter")
+      (div
+       "min. Lon.: "
+       ,{(number-input (list-layout-min-lon layout) min-lon max-lon min-lon)
+         . => . min-lon})
+      (div
+       "max. Lon.: "
+       ,{(number-input (list-layout-max-lon layout) min-lon max-lon max-lon)
+         . => . max-lon})
 
-           (div ,{(checkbox-input (stop-list-state-use-lat-filter? state)) . => . use-lat-filter?}
-                "Latitude filter")
-           (div
-            "min. Lat.: "
-            ,{(number-input (list-layout-min-lat layout) min-lat max-lat min-lat)
-              . => . min-lat})
-           (div
-            "max. Lat.: "
-            ,{(number-input (list-layout-max-lat layout) min-lat max-lat max-lat)
-              . => . max-lat})))
+      (div ,{(checkbox-input (stop-list-state-use-lat-filter? state)) . => . use-lat-filter?}
+           "Latitude filter")
+      (div
+       "min. Lat.: "
+       ,{(number-input (list-layout-min-lat layout) min-lat max-lat min-lat)
+         . => . min-lat})
+      (div
+       "max. Lat.: "
+       ,{(number-input (list-layout-max-lat layout) min-lat max-lat max-lat)
+         . => . max-lat}))
      
      (stop-list-state (if (not (null? selected-stops))
                           (car selected-stops)
@@ -235,14 +234,24 @@
                       (list-layout name-filter min-lon max-lon min-lat max-lat 0)
                       use-name-filter? use-lon-filter? use-lat-filter?))))
 
-(define (stop-formlet state)
+(define (stop-formlet state [embed/url (λ (x) "")])
   (let* ([state1 (stops-state-list1 state)]
          [state2 (stops-state-list2 state)])
     (formlet
      (#%#
-      (div ([class "row"])
-           ,{(stop-list-formlet state1) . => . list-state1}
-           ,{(stop-list-formlet state2) . => . list-state2}))
+      (fieldset
+       (legend "Stop Selection")
+       (form
+        ([action ,(embed/url render-stop-info-page)])
+        (div ([class "row"])
+             (div ([class "column"])
+                  ,{(stop-list-formlet state1) . => . list-state1})
+             (div ([class "column"])
+                  ,{(stop-list-formlet state2) . => . list-state2}))
+        (p (input ([type "submit"])))))
+      (fieldset
+       (legend "Routes for Selected Stops")
+       ,(route-table state)))
      (stops-state list-state1 list-state2))))
 
 (define (bindings request)
@@ -253,8 +262,7 @@
 
 (define (route-state-from-request request)
   (if (has-bindings? request)
-      (formlet-process (route-formlet (web-state-route (get-global-state))
-                                      (λ (x) ""))
+      (formlet-process (route-formlet (web-state-route (get-global-state)))
                        request)
       (web-state-route (get-global-state))))
 
@@ -275,14 +283,7 @@
            ,stylesheet-link)
      (body
       ,(tabbing tab-info 0 embed/url)
-      (fieldset
-       (legend "Stop Selection")
-       (form ([action ,(embed/url render-stop-info-page)])
-             ,@(formlet-display (stop-formlet state))
-             (p (input ([type "submit"])))))
-      (fieldset
-       (legend "Routes for Selected Stops")
-       ,(route-table state))))))
+      ,@(formlet-display (stop-formlet state embed/url))))))
 
 (define (create-route-edit-response state embed/url)
   (response/xexpr
