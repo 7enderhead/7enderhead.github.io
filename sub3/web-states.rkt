@@ -57,4 +57,14 @@
                        "submit-type" (route-state-submit-type s)
                        "messages" (route-state-messages s)))))])
 
+(serializable-struct
+ food-state (list distance)
+ #:transparent
+ #:methods gen:custom-write
+ [(define write-proc
+    (make-constructor-style-printer
+     (lambda (s) 'food-state)
+     (lambda (s) (list "list" (food-state-list s)
+                       "distance" (food-state-distance s)))))])
+
 (provide (all-defined-out))

@@ -50,9 +50,12 @@
 (define default-route-state
   (route-state "" "Bus" "" "" default-stop-list-state (set) "" '(data-missing stop-number)))
 
+(define default-food-state
+  (food-state default-stop-list-state 10))
+
 (define default-global-state (web-state default-stops-state
                                         default-route-state
-                                        null))
+                                        default-food-state))
 
 (define global-state
   (make-web-cell default-global-state))
@@ -248,11 +251,23 @@
                   ,{(stop-list-formlet state1) . => . list-state1})
              (div ([class "column"])
                   ,{(stop-list-formlet state2) . => . list-state2}))
-        (p (input ([type "submit"])))))
+        (p ,{(submit "Filter / Select") . => . submit})))
       (fieldset
        (legend "Routes for Selected Stops")
        ,(route-table state)))
      (stops-state list-state1 list-state2))))
+
+(define (food-formlet state [embed/url (λ (x) "")])
+  (let* ([list-state (food-state-list state)])
+    (formlet
+     (#%#
+      (form
+        ([action ,(embed/url render-food-page)])
+        (div ([class "row"])
+             (div ([class "column"])
+                  ,{(stop-list-formlet list-state) . => . list-state}))
+        (p (input ([type "submit"])))))
+     (food-state list-state (food-state-distance state)))))
 
 (define (bindings request)
   (force (request-bindings/raw-promise request)))
@@ -272,27 +287,45 @@
                        request)
       (web-state-stops (get-global-state))))
 
+(define (food-state-from-request request)
+  (if (has-bindings? request)
+      (formlet-process (food-formlet (web-state-food (get-global-state)))
+                       request)
+      (web-state-food (get-global-state))))
+
 (define stylesheet-link `(link ((rel "stylesheet")
                                 (href "/styles.css")
                                 (type "text/css"))))
 
 (define (create-stop-info-response state embed/url)
-  (response/xexpr
+  (let ([index 0])
+    (response/xexpr
    `(html
      (head (title "route21 - Routes Between Stops")
            ,stylesheet-link)
      (body
-      ,(tabbing tab-info 0 embed/url)
-      ,@(formlet-display (stop-formlet state embed/url))))))
+      ,(tabbing tab-info index embed/url)
+      ,@(formlet-display (stop-formlet state embed/url)))))))
 
 (define (create-route-edit-response state embed/url)
-  (response/xexpr
+  (let ([index 1])
+    (response/xexpr
    `(html
      (head (title "route21 - Routes Between Stops")
            ,stylesheet-link)
      (body
-      ,(tabbing tab-info 1 embed/url)
-      ,@(formlet-display (route-formlet state embed/url))))))
+      ,(tabbing tab-info index embed/url)
+      ,@(formlet-display (route-formlet state embed/url)))))))
+
+(define (create-food-response state embed/url)
+  (let ([index 2])
+    (response/xexpr
+   `(html
+     (head (title "route21 - Routes Between Stops")
+           ,stylesheet-link)
+     (body
+      ,(tabbing tab-info 2 embed/url)
+      ,@(formlet-display (food-formlet state embed/url)))))))
 
 (define (process-route-submission state)
   (let* ([number (route-state-number state)]
@@ -325,6 +358,16 @@
          [new-global-state (struct-copy web-state
                                         (get-global-state)
                                         [route new-state])])
+    (set-global-state new-global-state)
+    (send/suspend/dispatch response-generator)))
+
+(define (render-food-page request)
+  (let* ([state (food-state-from-request request)]
+         [response-generator (λ (embed/url)
+                               (create-food-response state embed/url))]
+         [new-global-state (struct-copy web-state
+                                        (get-global-state)
+                                        [food state])])
     (set-global-state new-global-state)
     (send/suspend/dispatch response-generator)))
 
@@ -370,7 +413,8 @@
          (td ,(route-end route)))))
 
 (define tab-info (vector (cons "Routes Between Stops" render-stop-info-page)
-                         (cons "New Route Creation" render-route-edit-page)))
+                         (cons "New Route Creation" render-route-edit-page)
+                         (cons "Restaurant Finder" render-food-page)))
 
 (define (format-tab-header header)
   (format " ~a " header))
