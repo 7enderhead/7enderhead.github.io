@@ -155,9 +155,9 @@
              (p ,{(stop-list-formlet (route-state-list state)) . => . list-state})
              (p ,{(submit "Filter") . => . submit-filter})
              ,(if (contains? messages 'stop-number)
-            `(div ([class "row"])
-                  (p "Please select at least 2 stops."))
-            ""))
+                  `(div ([class "row"])
+                        (p "Please select at least 2 stops."))
+                  ""))
         (div ([class "three-column-inner"])
              (p ,{(submit "Add Stop ->") . => . submit-add-stop})
              (p ,{(submit "<- Remove Stop") . => . submit-remove-stop}))
@@ -305,15 +305,15 @@
          [already-exists? (send provider route-exists? new-route)]
          [stops (route-state-stops state)]
          [stop-number-ok? (>= (set-count stops) 2)])
-    (when (and all-data-given? stop-number-ok? (not already-exists?)
-               (equal? "create-route" (route-state-submit-type state)))
-      (begin
-        (send provider insert-route new-route (set-map stops stop-id))
-        (route-state-messages state)))
-    (filter (λ (x) (not (void? x)))
-            (list (unless all-data-given? 'data-missing)
-                  (unless stop-number-ok? 'stop-number)
-                  (when already-exists? 'exists)))))
+    (if (and all-data-given? stop-number-ok? (not already-exists?)
+             (equal? "create-route" (route-state-submit-type state)))
+        (begin
+          (send provider insert-route new-route (set-map stops stop-id))
+          '(exists))
+        (filter (λ (x) (not (void? x)))
+                (list (unless all-data-given? 'data-missing)
+                      (unless stop-number-ok? 'stop-number)
+                      (when already-exists? 'exists))))))
 
 (define (render-route-edit-page request)
   (let* ([state (route-state-from-request request)]
