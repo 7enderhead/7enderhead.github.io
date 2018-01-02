@@ -118,10 +118,9 @@
       #t
       #f))
 
-(define (route-formlet state embed/url [display-call #t])
+(define (route-formlet state embed/url)
   (let* ([current-stops (route-state-stops state)]
          [messages (route-state-messages state)])
-    (printf "formlet (display call: ~a) messages: ~a~n" display-call messages)
     (formlet
      (#%#
       (form
@@ -146,11 +145,19 @@
             `(div ([class "row"])
                   (p "Please enter data for Number, Start and End."))
             "")
+       ,(if (contains? messages 'exists)
+            `(div ([class "row"])
+                  (p "Route with this data already exists."))
+            "")
        (div
         ([class "row"])
         (div ([class "three-column-outer"])
              (p ,{(stop-list-formlet (route-state-list state)) . => . list-state})
-             (p ,{(submit "Filter") . => . submit-filter}))
+             (p ,{(submit "Filter") . => . submit-filter})
+             ,(if (contains? messages 'stop-number)
+            `(div ([class "row"])
+                  (p "Please select at least 2 stops."))
+            ""))
         (div ([class "three-column-inner"])
              (p ,{(submit "Add Stop ->") . => . submit-add-stop})
              (p ,{(submit "<- Remove Stop") . => . submit-remove-stop}))
@@ -247,8 +254,7 @@
 (define (route-state-from-request request)
   (if (has-bindings? request)
       (formlet-process (route-formlet (web-state-route (get-global-state))
-                                      (λ (x) "")
-                                      #f)
+                                      (λ (x) ""))
                        request)
       (web-state-route (get-global-state))))
 
@@ -299,12 +305,10 @@
          [already-exists? (send provider route-exists? new-route)]
          [stops (route-state-stops state)]
          [stop-number-ok? (>= (set-count stops) 2)])
-    (printf "all-data-given? ~a, already-exists? ~a, stop-number-ok? ~a ~n" all-data-given? already-exists? stop-number-ok?)
     (when (and all-data-given? stop-number-ok? (not already-exists?)
                (equal? "create-route" (route-state-submit-type state)))
       (begin
-        (printf "inserting new route ~a with stops ~a~n" new-route (set-map stops stop-id))
-        #;(send provider insert-route new-route (set-map stops stop-id))
+        (send provider insert-route new-route (set-map stops stop-id))
         (route-state-messages state)))
     (filter (λ (x) (not (void? x)))
             (list (unless all-data-given? 'data-missing)
@@ -320,7 +324,6 @@
          [new-global-state (struct-copy web-state
                                         (get-global-state)
                                         [route new-state])])
-    (printf "state: ~a, new route messages: ~a, new route state ~a~n" state new-messages new-state)
     (set-global-state new-global-state)
     (send/suspend/dispatch response-generator)))
 
@@ -333,7 +336,7 @@
 
 (define (set-global-state new-state)
   (web-cell-shadow global-state new-state)
-  (printf "new global state:~n~a~n" new-state))
+  #;(printf "new global state:~n~a~n" new-state))
 
 (define (get-global-state)
   (web-cell-ref global-state))
