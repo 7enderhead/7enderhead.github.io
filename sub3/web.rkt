@@ -85,13 +85,13 @@
                            #:value preset-value
                            #:attributes attributes))))
 
-(define (number-input preset min max preset-value)
+(define (number-input preset min max preset-value [step 0.0000001])
   (~> (input #:type "number"
              #:attributes
              `((value ,(->string preset))
                (min ,(->string min))
                (max ,(->string max))
-               (step "0.0000001")))
+               (step ,(->string step))))
       (default (string->bytes/utf-8 (->string preset-value)) _)
       to-string
       to-number))
@@ -201,16 +201,16 @@
                        (format-range (lat-range current-stop)))
                "-"))
       (div ,{(stop-list-input stops current-stop) . => . selected-stops})
-      (div ,{(checkbox-input (stop-list-state-use-name-filter? state))
-             . => . use-name-filter?}
-           "Name filter "
-           ,{(preset-text-input
-              (list-layout-filter-expr (stop-list-state-layout state)))
-             . => . name-filter})
+      (p ,{(checkbox-input (stop-list-state-use-name-filter? state))
+           . => . use-name-filter?}
+         "Name filter "
+         ,{(preset-text-input
+            (list-layout-filter-expr (stop-list-state-layout state)))
+           . => . name-filter})
 
-      (div ,{(checkbox-input (stop-list-state-use-lon-filter? state))
-             . => . use-lon-filter?}
-           "Longitude filter")
+      (p ,{(checkbox-input (stop-list-state-use-lon-filter? state))
+           . => . use-lon-filter?}
+         "Longitude filter")
       (div
        "min. Lon.: "
        ,{(number-input (list-layout-min-lon layout) min-lon max-lon min-lon)
@@ -220,8 +220,8 @@
        ,{(number-input (list-layout-max-lon layout) min-lon max-lon max-lon)
          . => . max-lon})
 
-      (div ,{(checkbox-input (stop-list-state-use-lat-filter? state)) . => . use-lat-filter?}
-           "Latitude filter")
+      (p ,{(checkbox-input (stop-list-state-use-lat-filter? state)) . => . use-lat-filter?}
+         "Latitude filter")
       (div
        "min. Lat.: "
        ,{(number-input (list-layout-min-lat layout) min-lat max-lat min-lat)
@@ -258,16 +258,25 @@
      (stops-state list-state1 list-state2))))
 
 (define (food-formlet state [embed/url (λ (x) "")])
-  (let* ([list-state (food-state-list state)])
+  (let* ([list-state (food-state-list state)]
+         [current-stop (stop-list-state-stop (food-state-list state))]
+         [current-distance (food-state-distance state)])
     (formlet
      (#%#
       (form
-        ([action ,(embed/url render-food-page)])
-        (div ([class "row"])
-             (div ([class "column"])
-                  ,{(stop-list-formlet list-state) . => . list-state}))
-        (p (input ([type "submit"])))))
-     (food-state list-state (food-state-distance state)))))
+       ([action ,(embed/url render-food-page)])
+       ,{(stop-list-formlet list-state) . => . list-state}
+       (p "max. Restaurant distance (meters): "
+          ,{(number-input current-distance 0 999999 current-distance 1) . => . distance})
+       (p ,{(submit "Filter / Select") . => . submit})
+       ,(if current-stop
+            `(fieldset
+              (legend "Nearby Restaurants")
+              ,(food-table (stop-lon current-stop)
+                           (stop-lat current-stop)
+                           current-distance))
+            "")))
+     (food-state list-state distance))))
 
 (define (bindings request)
   (force (request-bindings/raw-promise request)))
@@ -300,32 +309,32 @@
 (define (create-stop-info-response state embed/url)
   (let ([index 0])
     (response/xexpr
-   `(html
-     (head (title "route21 - Routes Between Stops")
-           ,stylesheet-link)
-     (body
-      ,(tabbing tab-info index embed/url)
-      ,@(formlet-display (stop-formlet state embed/url)))))))
+     `(html
+       (head (title "route21 - Routes Between Stops")
+             ,stylesheet-link)
+       (body
+        ,(tabbing tab-info index embed/url)
+        ,@(formlet-display (stop-formlet state embed/url)))))))
 
 (define (create-route-edit-response state embed/url)
   (let ([index 1])
     (response/xexpr
-   `(html
-     (head (title "route21 - Routes Between Stops")
-           ,stylesheet-link)
-     (body
-      ,(tabbing tab-info index embed/url)
-      ,@(formlet-display (route-formlet state embed/url)))))))
+     `(html
+       (head (title "route21 - Routes Between Stops")
+             ,stylesheet-link)
+       (body
+        ,(tabbing tab-info index embed/url)
+        ,@(formlet-display (route-formlet state embed/url)))))))
 
 (define (create-food-response state embed/url)
   (let ([index 2])
     (response/xexpr
-   `(html
-     (head (title "route21 - Routes Between Stops")
-           ,stylesheet-link)
-     (body
-      ,(tabbing tab-info 2 embed/url)
-      ,@(formlet-display (food-formlet state embed/url)))))))
+     `(html
+       (head (title "route21 - Routes Between Stops")
+             ,stylesheet-link)
+       (body
+        ,(tabbing tab-info 2 embed/url)
+        ,@(formlet-display (food-formlet state embed/url)))))))
 
 (define (process-route-submission state)
   (let* ([number (route-state-number state)]
@@ -371,6 +380,13 @@
     (set-global-state new-global-state)
     (send/suspend/dispatch response-generator)))
 
+(define (route-table-entries routes)
+  (for/list ([route routes])
+    `(tr (td ,(route-type route))
+         (td ,(route-number route))
+         (td ,(route-start route))
+         (td ,(route-end route)))))
+
 (define (route-table state)
   (let* ([stop1 (stop-list-state-stop (stops-state-list1 state))]
          [stop2 (stop-list-state-stop (stops-state-list2 state))]
@@ -379,6 +395,22 @@
     `(table
       (tr (th "Type") (th "Number") (th "Start") (th "End"))
       ,@route-entries)))
+
+(define (food-table-entries food-data)
+  (for/list ([datum food-data])
+    (match-let ([(cons distance food) datum])
+      `(tr (td ,(->string distance))
+           (td ,(food-name food))
+           (td ,(food-website food))))))
+
+(define (food-table lon lat distance)
+  (let* ([foods (send provider food-at-place lon lat distance)]
+         [food-entries (food-table-entries foods)]
+         [table `(table
+                  (tr (th "Distance") (th "Name") (th "Website"))
+                  ,@food-entries)])
+    (printf "food-table foods: ~a~nentries: ~a~nresult:~a~n" foods food-entries table)
+    table))
 
 (define (set-global-state new-state)
   (web-cell-shadow global-state new-state)
@@ -404,13 +436,6 @@
              [routes (routes-for-all-stop-pairs provider stops1 stops2)])
         routes)
       null))
-
-(define (route-table-entries routes)
-  (for/list ([route routes])
-    `(tr (td ,(route-type route))
-         (td ,(route-number route))
-         (td ,(route-start route))
-         (td ,(route-end route)))))
 
 (define tab-info (vector (cons "Routes Between Stops" render-stop-info-page)
                          (cons "New Route Creation" render-route-edit-page)

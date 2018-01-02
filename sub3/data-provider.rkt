@@ -55,6 +55,7 @@
            routes-for-stop
            route-exists?
            insert-route
-           add-callback))
+           add-callback
+           food-at-place))
        
        (provide data-provider<%>)]
