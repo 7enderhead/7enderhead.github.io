@@ -332,7 +332,9 @@
          [stop2 (stop-list-state-stop (stops-state-list2 state))]
          [routes (routes-for-stops stop1 stop2)]
          [route-entries (route-table-entries routes)])
-    `(table ,@route-entries)))
+    `(table
+      (tr (th "Type") (th "Number") (th "Start") (th "End"))
+      ,@route-entries)))
 
 (define (set-global-state new-state)
   (web-cell-shadow global-state new-state)
