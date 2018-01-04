@@ -271,7 +271,7 @@
        (p ,{(submit "Filter / Select") . => . submit})
        ,(if current-stop
             `(fieldset
-              (legend "Nearby Restaurants")
+              (legend ,(format "Restaurants within ~a meters of stop ~a" current-distance (stop-name current-stop)))
               ,(food-table (stop-lon current-stop)
                            (stop-lat current-stop)
                            current-distance))
@@ -393,23 +393,29 @@
          [routes (routes-for-stops stop1 stop2)]
          [route-entries (route-table-entries routes)])
     `(table
-      (tr (th "Type") (th "Number") (th "Start") (th "End"))
+      (tr (th ([align "left"]) "Type")
+          (th ([align "left"]) "Number")
+          (th ([align "left"]) "Start")
+          (th ([align "left"]) "End"))
       ,@route-entries)))
 
 (define (food-table-entries food-data)
   (for/list ([datum food-data])
     (match-let ([(cons distance food) datum])
-      `(tr (td ,(->string distance))
+      `(tr (td ,(format "~am"(->string (->int (floor distance)))))
            (td ,(food-name food))
-           (td ,(food-website food))))))
+           (td (a ((href ,(food-website food))
+                   (target "_blank"))
+                  ,(food-website food)))))))
 
 (define (food-table lon lat distance)
   (let* ([foods (send provider food-at-place lon lat distance)]
          [food-entries (food-table-entries foods)]
          [table `(table
-                  (tr (th "Distance") (th "Name") (th "Website"))
+                  (tr (th ([align "left"]) "Distance")
+                      (th ([align "left"]) "Name")
+                      (th ([align "left"]) "Website"))
                   ,@food-entries)])
-    (printf "food-table foods: ~a~nentries: ~a~nresult:~a~n" foods food-entries table)
     table))
 
 (define (set-global-state new-state)

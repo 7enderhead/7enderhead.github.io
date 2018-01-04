@@ -25,3 +25,7 @@ body {
   display: table;
   clear: both;
 }
+
+td, th {
+  padding:0 15px 0 15px;
+}
