@@ -206,6 +206,27 @@ Allows to treat single and multiple stops with the same name in a homogenous way
              remove-duplicates
              sort-routes))]
 
+@section{Food Places}
+
+@chunk[<food-struct>
+       (struct food (id lon lat name amenity website wheelchair smoking cuisine opening-hours outdoor-seating)
+         #:transparent
+         #:methods gen:custom-write
+         [(define write-proc
+            (make-constructor-style-printer
+             (lambda (f) 'food)
+             (lambda (f) (list "id" (food-id f)
+                               "lon" (food-lon f)
+                               "lat" (food-lat f)
+                               "name" (food-name f)
+                               "amenity" (food-amenity f)
+                               "website" (food-website f)
+                               "wheelchair" (food-wheelchair f)
+                               "smoking" (food-smoking f)
+                               "cuisine" (food-cuisine f)
+                               "opening-hours" (food-opening-hours f)
+                               "outdoor-seating" (food-outdoor-seating f)))))])]
+
 @section{File Structure}
 
 @chunk[<*>
@@ -222,6 +243,8 @@ Allows to treat single and multiple stops with the same name in a homogenous way
        <route-struct>
        <route-helper-functions>
 
+       <food-struct>
+       
        (provide (all-defined-out))]
 
 @subsection{Required Imports}

@@ -40,7 +40,9 @@
 
            <route-handling>
 
-           <route-update-handling>    
+           <route-update-handling>
+
+           <food-handling>
            ))]
 
 @section{Connection Handling}
@@ -339,7 +341,31 @@ selected with the following simple SQL statement:
                      (reset-routes)
                      (invoke-callbacks))))]))]
 
-@section{Code Structure}
+@section{Food Places}
+
+@chunk[<food-handling>
+       (define all-food #f)
+
+       (define/public (foods)
+         (unless all-food
+           (set! all-food
+                 (for/list ([row (query-rows connection "select id,lon,lat,name,amenity,website,wheelchair,smoking,cuisine,opening_hours,outdoor_seating from food")])
+                   (apply food (vector->list row)))))
+         all-food)
+       
+       (define/public (food-at-place lon lat max-distance)
+         (sort (for/list ([food-info (map (λ (f)
+                                            (cons (hav:distance-in-meters-deg lon
+                                                                              lat
+                                                                              (food-lon f)
+                                                                              (food-lat f))
+                                                  f))
+                                          (foods))]
+                          #:when (<= (car food-info) max-distance))
+                 food-info)
+               (λ (a b) (< (car a) (car b)))))]
+
+@section{File Structure}
 
 @chunk[<*>
        <requires>
@@ -358,4 +384,5 @@ selected with the following simple SQL statement:
        (require sugar/coerce)
        (require racket/gui/base) ; for timer%
        (require "data-provider.rkt")
-       (require "data-defs.rkt")]
+       (require "data-defs.rkt")
+       (require (prefix-in hav: "haversine.rkt"))]
