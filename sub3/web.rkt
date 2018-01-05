@@ -128,11 +128,13 @@
      (#%#
       (form
        ([action ,(embed/url render-route-edit-page)])
-       (div
+       (fieldset
+        (legend "Data for New Route")
+        (div
         ([class "row"])
         "Number: "
         ,{(preset-text-input (route-state-number state)) . => . number}
-        "Type: "
+        " Type: "
         ,{(radio-group '("Bus" "Tram")
                        #:checked? (λ (t) (equal? t (route-state-type state))))
           . => . type})
@@ -151,8 +153,10 @@
        ,(if (contains? messages 'exists)
             `(div ([class "row"])
                   (p "Route with this data already exists."))
-            "")
-       (div
+            ""))
+       (fieldset
+        (legend "Stops for New Route")
+        (div
         ([class "row"])
         (div ([class "three-column-outer"])
              (p ,{(stop-list-formlet (route-state-list state)) . => . list-state})
@@ -165,7 +169,7 @@
              (p ,{(submit "Add Stop ->") . => . submit-add-stop})
              (p ,{(submit "<- Remove Stop") . => . submit-remove-stop}))
         (div ([class "three-column-outer"])
-             ,{(stop-list-input current-stops #f) . => . selected-new-stops}))
+             ,{(stop-list-input current-stops #f) . => . selected-new-stops})))
        (p ,{(submit "Create New Route") . => . submit-create-route})))
      (let* ([submit-type (cond
                            (submit-filter "filter")
@@ -265,9 +269,13 @@
      (#%#
       (form
        ([action ,(embed/url render-food-page)])
-       ,{(stop-list-formlet list-state) . => . list-state}
-       (p "max. Restaurant distance (meters): "
-          ,{(number-input current-distance 0 999999 current-distance 1) . => . distance})
+       (fieldset
+        (legend "Stop Selection")
+        ,{(stop-list-formlet list-state) . => . list-state})
+       (fieldset
+        (legend "Distance Selection")
+        (p "max. Restaurant distance (meters): "
+          ,{(number-input current-distance 0 999999 current-distance 1) . => . distance}))
        (p ,{(submit "Filter / Select") . => . submit})
        ,(if current-stop
             `(fieldset
