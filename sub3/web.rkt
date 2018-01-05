@@ -1,4 +1,4 @@
-#lang web-server/insta
+#lang racket
 
 (require racket/format)
 (require anaphoric)
@@ -9,7 +9,10 @@
 (require web-server/formlets)
 (require web-server/formlets/input)
 (require web-server/formlets/lib)
+(require web-server/servlet)
+(require web-server/servlet-env)
 (require web-server/servlet/web-cells)
+(require web-server/managers/timeouts)
 (require (rename-in "data-defs.rkt"
                     (min-lon def:min-lon)
                     (max-lon def:max-lon)
@@ -21,12 +24,9 @@
 (require "web-states.rkt")
 (require "util.rkt")
 
-;; debug imports
-(require web-server/http/request-structs)
-
-(static-files-path "htdocs")
-
 (define info (get-info/full "."))
+
+(provide/contract (start (request? . -> . response?)))
 
 (define provider (data-provider))
 
@@ -459,3 +459,17 @@
                   (format-tab-header (car tab))
                   `(a ((href ,(embed/url (cdr tab))))
                       ,(format-tab-header (car tab))))))))
+
+(serve/servlet
+ start
+ #:launch-browser? #f
+ #:quit? #f
+ #:listen-ip #f
+ #:port 8021
+ #:manager (create-timeout-manager #f
+                                   (info 'web-timeout-seconds)
+                                   (info 'web-timeout-seconds))
+ #:extra-files-paths (list (build-path
+                            "/home/gisi/Documents/route21/sub3/"
+                            "htdocs"))
+ #:servlet-path "/servlets/route21.rkt")
