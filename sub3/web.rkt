@@ -448,17 +448,18 @@
                          (cons "Restaurant Finder" render-food-page)))
 
 (define (format-tab-header header)
-  (format " ~a " header))
+  (format "~a" header))
 
 (define (tabbing tab-info selected-index embed/url)
   `(ul
-    ,@(for/list ([index (in-naturals)]
-                 [tab tab-info])
-        `(li ([style "display:inline"])
-             ,(if (= index selected-index)
-                  (format-tab-header (car tab))
-                  `(a ((href ,(embed/url (cdr tab))))
-                      ,(format-tab-header (car tab))))))))
+    ,@(add-between (for/list ([index (in-naturals)]
+                              [tab tab-info])
+                     `(li ([style "display:inline"])
+                          ,(if (= index selected-index)
+                               (format-tab-header (car tab))
+                               `(a ((href ,(embed/url (cdr tab))))
+                                   ,(format-tab-header (car tab))))))
+                   `(li ([style "display:inline"]) " | "))))
 
 (serve/servlet
  start
