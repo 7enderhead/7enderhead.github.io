@@ -7,3 +7,4 @@
 (define coord-string-length 10)
 (define route-min-stops 2)
 (define web-stop-list-size 15)
+(define web-timeout-seconds 3600)

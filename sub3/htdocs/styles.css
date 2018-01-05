@@ -29,3 +29,8 @@ body {
 td, th {
   padding:0 15px 0 15px;
 }
+
+fieldset {
+  margin-top: 15px;
+  margin-bottom: 15px;
+}
