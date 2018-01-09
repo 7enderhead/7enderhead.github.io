@@ -4,7 +4,23 @@
 
 @title[#:tag "web"]{route21 Static Web Application}
 
+@section{General Sequence}
+
+@itemlist[
+ @item{request to render a specific 'tab'}
+ @item{tabbing produces sites using}
+ @item{the formlet for a tab}
+ @item{global state for session is tracked and used to}
+ @item{prefill already entered data}
+ @item{extracted from HTTP request and further processed (e.g., data display)}
+ ]
+
 @section{Module Data}
+
+@itemlist[
+ @item{@racket[data-provider<%>] interface and implementation from GUI reused}
+ @item{static pre-sorted stop list is cached, since stops never change}
+ ]
 
 @chunk[<module-data>
        (define info (get-info/full "."))
@@ -24,6 +40,11 @@
        <global-state>]
 
 @subsection{Global State}
+
+@itemlist[
+ @item{@racket[global-state] is a @racket[web-cell] which keeps track of the current session's data}
+ @item{it automatically tracks browser history (back/forth) and separate sessions}
+ ]
 
 @chunk[<global-state>
        <default-states>
@@ -222,7 +243,25 @@ Reused in every tab for stop selection. Constituents:
 @section{Tabbing}
 
 @chunk[<tabbing>
-       <top-level-responses>]
+       <top-level-responses>
+
+       (define tab-info (vector (cons "Routes Between Stops" render-stop-info-page)
+                                (cons "New Route Creation" render-route-edit-page)
+                                (cons "Restaurant Finder" render-food-page)))
+
+       (define (format-tab-header header)
+         (format "~a" header))
+
+       (define (tabbing tab-info selected-index embed/url)
+         `(ul
+           ,@(add-between (for/list ([index (in-naturals)]
+                                     [tab tab-info])
+                            `(li ([style "display:inline"])
+                                 ,(if (= index selected-index)
+                                      (format-tab-header (car tab))
+                                      `(a ((href ,(embed/url (cdr tab))))
+                                          ,(format-tab-header (car tab))))))
+                          `(li ([style "display:inline"]) " | "))))]
 
 @itemlist[
  @item{each tab corresponds to a servlet response from the web server}
@@ -264,8 +303,8 @@ Reused in every tab for stop selection. Constituents:
 
 @itemlist[
  @item{show two @italic{stop-list-formlet} inputs}
-  @item{calculate routes to be shown from selected stops}
-  @item{display routes in table}
+ @item{calculate routes to be shown from selected stops}
+ @item{display routes in table}
  ]
 
 @chunk[<stop-info>
@@ -289,6 +328,24 @@ Reused in every tab for stop selection. Constituents:
               ,(route-table state)))
             (stops-state list-state1 list-state2))))
 
+       (define (render-stop-info-page request)
+         (let* ([stops-state (stops-state-from-request request)]
+                [response-generator (lambda (embed/url)
+                                      (create-stop-info-response stops-state embed/url))])
+           (set-global-state (struct-copy web-state
+                                          (get-global-state)
+                                          [stops stops-state]))
+           (send/suspend/dispatch response-generator)))
+
+       (define (routes-for-stops compound-stop1 compound-stop2)
+         (if (and (and compound-stop1 compound-stop2)
+                  (not (equal? compound-stop1 compound-stop2)))
+             (let* ([stops1 (constituents compound-stop1)]
+                    [stops2 (constituents compound-stop2)]
+                    [routes (routes-for-all-stop-pairs provider stops1 stops2)])
+               routes)
+             null))
+       
        <route-table>]
 
 @subsection{Route Table Creation}
@@ -313,28 +370,20 @@ Reused in every tab for stop selection. Constituents:
                  (th ([align "left"]) "End"))
              ,@route-entries)))]
 
-@section{File Structure}
+@section{Create New Route}
 
-@chunk[<*>
-       <requires>
-
-       (provide/contract (start (request? . -> . response?)))
-       
-       <module-data>
-
-       <formlet-parts>
-       
-       (define (start request)
-         (render-stop-info-page request))
-
-       <tabbing>
-       
-       <stop-info>
-
-       (define (contains? list x)
-         (if (findf (λ (element) (equal? element x)) list)
-             #t
-             #f))
+@chunk[<route-creation>
+       (define (render-route-edit-page request)
+         (let* ([state (route-state-from-request request)]
+                [new-messages (process-route-submission state)]
+                [new-state (struct-copy route-state state [messages new-messages])]
+                [response-generator (λ (embed/url)
+                                      (create-route-edit-response new-state embed/url))]
+                [new-global-state (struct-copy web-state
+                                               (get-global-state)
+                                               [route new-state])])
+           (set-global-state new-global-state)
+           (send/suspend/dispatch response-generator)))
 
        (define (route-formlet state [embed/url (λ (x) "")])
          (let* ([current-stops (route-state-stops state)]
@@ -405,37 +454,6 @@ Reused in every tab for stop selection. Constituents:
                                                  current-stops)])])
               (route-state number type start end list-state stops submit-type messages)))))
 
-       (define (food-formlet state [embed/url (λ (x) "")])
-         (let* ([list-state (food-state-list state)]
-                [current-stop (stop-list-state-stop (food-state-list state))]
-                [current-distance (food-state-distance state)])
-           (formlet
-            (#%#
-             (form
-              ([action ,(embed/url render-food-page)])
-              (fieldset
-               (legend "Stop Selection")
-               ,{(stop-list-formlet list-state) . => . list-state})
-              (fieldset
-               (legend "Distance Selection")
-               (p "max. Restaurant distance (meters): "
-                  ,{(number-input current-distance 0 999999 current-distance 1) . => . distance}))
-              (p ,{(submit "Filter / Select") . => . submit})
-              ,(if current-stop
-                   `(fieldset
-                     (legend ,(format "Restaurants within ~a meters of stop ~a" current-distance (stop-name current-stop)))
-                     ,(food-table (stop-lon current-stop)
-                                  (stop-lat current-stop)
-                                  current-distance))
-                   "")))
-            (food-state list-state distance))))
-
-       <bindings>
-
-       (define stylesheet-link `(link ((rel "stylesheet")
-                                       (href "/styles.css")
-                                       (type "text/css"))))
-
        (define (process-route-submission state)
          (let* ([number (route-state-number state)]
                 [type (route-state-type state)]
@@ -452,23 +470,11 @@ Reused in every tab for stop selection. Constituents:
                     (equal? "create-route" (route-state-submit-type state)))
                (begin
                  (send provider insert-route new-route (set-map stops stop-id))
-                 '(exists))
+                 null)
                (filter (λ (x) (not (void? x)))
                        (list (unless all-data-given? 'data-missing)
                              (unless stop-number-ok? 'stop-number)
                              (when already-exists? 'exists))))))
-
-       (define (render-route-edit-page request)
-         (let* ([state (route-state-from-request request)]
-                [new-messages (process-route-submission state)]
-                [new-state (struct-copy route-state state [messages new-messages])]
-                [response-generator (λ (embed/url)
-                                      (create-route-edit-response new-state embed/url))]
-                [new-global-state (struct-copy web-state
-                                               (get-global-state)
-                                               [route new-state])])
-           (set-global-state new-global-state)
-           (send/suspend/dispatch response-generator)))
 
        (define (render-food-page request)
          (let* ([state (food-state-from-request request)]
@@ -497,46 +503,50 @@ Reused in every tab for stop selection. Constituents:
                              (th ([align "left"]) "Name")
                              (th ([align "left"]) "Website"))
                          ,@food-entries)])
-           table))
+           table))]
 
-       
+@section{Restaurant Finder}
 
-       (define (render-stop-info-page request)
-         (let* ([stops-state (stops-state-from-request request)]
-                [response-generator (lambda (embed/url)
-                                      (create-stop-info-response stops-state embed/url))])
-           (set-global-state (struct-copy web-state
-                                          (get-global-state)
-                                          [stops stops-state]))
-           (send/suspend/dispatch response-generator)))
+@chunk[<restaurant-finder>
+       (define (food-formlet state [embed/url (λ (x) "")])
+         (let* ([list-state (food-state-list state)]
+                [current-stop (stop-list-state-stop (food-state-list state))]
+                [current-distance (food-state-distance state)])
+           (formlet
+            (#%#
+             (form
+              ([action ,(embed/url render-food-page)])
+              (fieldset
+               (legend "Stop Selection")
+               ,{(stop-list-formlet list-state) . => . list-state})
+              (fieldset
+               (legend "Distance Selection")
+               (p "max. Restaurant distance (meters): "
+                  ,{(number-input current-distance 0 999999 current-distance 1) . => . distance}))
+              (p ,{(submit "Filter / Select") . => . submit})
+              ,(if current-stop
+                   `(fieldset
+                     (legend ,(format "Restaurants within ~a meters of stop ~a" current-distance (stop-name current-stop)))
+                     ,(food-table (stop-lon current-stop)
+                                  (stop-lat current-stop)
+                                  current-distance))
+                   "")))
+            (food-state list-state distance))))]
 
-       (define (routes-for-stops compound-stop1 compound-stop2)
-         (if (and (and compound-stop1 compound-stop2)
-                  (not (equal? compound-stop1 compound-stop2)))
-             (let* ([stops1 (constituents compound-stop1)]
-                    [stops2 (constituents compound-stop2)]
-                    [routes (routes-for-all-stop-pairs provider stops1 stops2)])
-               routes)
-             null))
+@section{Web Setup}
 
-       (define tab-info (vector (cons "Routes Between Stops" render-stop-info-page)
-                                (cons "New Route Creation" render-route-edit-page)
-                                (cons "Restaurant Finder" render-food-page)))
+@chunk[<web-setup>
+       (provide/contract (start (request? . -> . response?)))
 
-       (define (format-tab-header header)
-         (format "~a" header))
+       (define (start request)
+         (render-stop-info-page request))
 
-       (define (tabbing tab-info selected-index embed/url)
-         `(ul
-           ,@(add-between (for/list ([index (in-naturals)]
-                                     [tab tab-info])
-                            `(li ([style "display:inline"])
-                                 ,(if (= index selected-index)
-                                      (format-tab-header (car tab))
-                                      `(a ((href ,(embed/url (cdr tab))))
-                                          ,(format-tab-header (car tab))))))
-                          `(li ([style "display:inline"]) " | "))))
+       (define stylesheet-link `(link ((rel "stylesheet")
+                                       (href "/styles.css")
+                                       (type "text/css"))))
 
+       (define-runtime-path htdocs "htdocs")
+              
        (serve/servlet
         start
         #:launch-browser? #f
@@ -546,11 +556,31 @@ Reused in every tab for stop selection. Constituents:
         #:manager (create-timeout-manager #f
                                           (info 'web-timeout-seconds)
                                           (info 'web-timeout-seconds))
-        #:extra-files-paths (list (build-path
-                                   "/home/gisi/Documents/route21/sub3/"
-                                   "htdocs"))
-        #:servlet-path "/servlets/route21.rkt")
-       ]
+        #:extra-files-paths (list htdocs)
+        #:servlet-path "/servlets/route21.rkt")]
+
+@section{File Structure}
+
+@chunk[<*>
+       <requires>
+
+       <module-data>
+       <formlet-parts>
+              
+       <stop-info>
+       <route-creation>
+       <restaurant-finder>
+
+       <tabbing>
+
+       (define (contains? list x)
+         (if (findf (λ (element) (equal? element x)) list)
+             #t
+             #f))
+
+       <bindings>
+
+       <web-setup>]
 
 @subsection{Required Imports}
 
@@ -561,6 +591,7 @@ Reused in every tab for stop selection. Constituents:
        (require threading)
        (require setup/getinfo)
        (require sugar/coerce)
+       (require racket/runtime-path)
        (require web-server/http/bindings)
        (require web-server/formlets)
        (require web-server/formlets/input)

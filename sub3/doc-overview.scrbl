@@ -26,3 +26,7 @@
  @item{@secref["compound-stop-selector"]}
  ]}
  ]
+
+@section{Static Web Application}
+
+@secref["web"]
